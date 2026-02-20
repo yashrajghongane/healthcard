@@ -242,14 +242,6 @@ function logout() {
   window.location.href = '../index.html';
 }
 
-function resetDemoData() {
-  localStorage.removeItem('users');
-  localStorage.removeItem('patientsDB');
-  localStorage.removeItem('currentUser');
-  localStorage.removeItem('authToken');
-  initializeStorage();
-}
-
 // Get current logged-in user
 function getCurrentUser() {
   const userStr = localStorage.getItem('currentUser');

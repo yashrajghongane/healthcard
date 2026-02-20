@@ -89,10 +89,13 @@ function mapBackendRecord(record) {
 }
 
 function mapBackendPatient(patient, history = []) {
+  const cardId = patient.healthCardId || patient.cardId || patient.qrCodeId;
+  const qrCodeId = patient.qrCodeId || cardId;
+
   return {
-    _id: patient.healthCardId || patient.cardId,
-    cardId: patient.healthCardId || patient.cardId,
-    qrCodeId: patient.healthCardId || patient.cardId,
+    _id: cardId,
+    cardId,
+    qrCodeId,
     name: patient.fullName || patient.name || '',
     phone: patient.phoneNumber || patient.phone || '',
     dob: patient.dob ? new Date(patient.dob).toISOString().split('T')[0] : '',

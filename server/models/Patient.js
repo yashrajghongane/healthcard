@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { randomUUID } from "crypto";
 
 const  generateHealthCardId = () =>{
   const now = new Date();
@@ -22,6 +21,11 @@ const patientSchema = new mongoose.Schema(
       unique: true,
       default: () => generateHealthCardId()
     },
+    qrCodeId: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
     bloodGroup: String,
     dob: Date,
     phoneNumber: String,
@@ -29,6 +33,16 @@ const patientSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+patientSchema.pre("validate", function () {
+  if (!this.healthCardId) {
+    this.healthCardId = generateHealthCardId();
+  }
+
+  if (!this.qrCodeId) {
+    this.qrCodeId = this.healthCardId;
+  }
+});
 
 
 

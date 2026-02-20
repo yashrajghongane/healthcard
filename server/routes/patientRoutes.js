@@ -17,6 +17,7 @@ router.get("/me", protect, authorize("patient"), async (req, res) => {
     res.json({
       healthCardId: patient.healthCardId,
       cardId: patient.healthCardId,
+      qrCodeId: patient.qrCodeId || patient.healthCardId,
       fullName: patient.fullName,
       name: patient.fullName,
       bloodGroup: patient.bloodGroup,

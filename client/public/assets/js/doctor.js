@@ -1,6 +1,8 @@
 // Search & Record Update logic
 
 let currentPatientId = null;
+let qrCodeScanner = null;
+let isScannerRunning = false;
 
 function formatAllergiesForDisplay(allergies) {
   if (Array.isArray(allergies)) {
@@ -92,22 +94,124 @@ function initDoctorDashboard() {
 
   // Setup event listeners
   setupSearchForm();
+  setupScannerModal();
   setupAddRecordForm();
   setupProfileModal();
-  setupResetDemoButton();
 }
 
-function setupResetDemoButton() {
-  const resetButton = document.getElementById('resetDemoBtn');
-  if (!resetButton) return;
+function setupScannerModal() {
+  const openButton = document.getElementById('openScannerBtn');
+  const closeButton = document.getElementById('closeScannerModal');
+  const manualButton = document.getElementById('scannerUseManualBtn');
 
-  resetButton.addEventListener('click', function() {
-    const confirmed = window.confirm('This will clear all local demo data (users, patients, session). Continue?');
-    if (!confirmed) return;
+  if (openButton) {
+    openButton.addEventListener('click', openScannerModal);
+  }
 
-    resetDemoData();
-    window.location.href = '../index.html';
-  });
+  if (closeButton) {
+    closeButton.addEventListener('click', closeScannerModal);
+  }
+
+  if (manualButton) {
+    manualButton.addEventListener('click', async function() {
+      const manualInput = document.getElementById('scannerManualInput');
+      const value = manualInput ? manualInput.value.trim() : '';
+      if (!value) return;
+
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.value = value;
+
+      await closeScannerModal();
+      await searchPatient(value);
+    });
+  }
+}
+
+function setScannerStatus(message, isError = false) {
+  const status = document.getElementById('scannerStatus');
+  if (!status) return;
+
+  status.innerText = message;
+  status.className = isError ? 'mt-3 text-xs text-red-300' : 'mt-3 text-xs text-slate-400';
+}
+
+async function openScannerModal() {
+  const modal = document.getElementById('scannerModal');
+  const manualInput = document.getElementById('scannerManualInput');
+
+  if (!modal) return;
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  if (manualInput) manualInput.value = '';
+
+  if (typeof Html5Qrcode === 'undefined') {
+    setScannerStatus('QR scanner library not loaded. Please refresh and try again.', true);
+    return;
+  }
+
+  if (!qrCodeScanner) {
+    qrCodeScanner = new Html5Qrcode('scannerReader');
+  }
+
+  if (isScannerRunning) {
+    return;
+  }
+
+  try {
+    setScannerStatus('Starting camera...');
+
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras || cameras.length === 0) {
+      setScannerStatus('No camera found on this device. Use manual Card ID entry below.', true);
+      return;
+    }
+
+    const backCamera = cameras.find((camera) => /back|rear|environment/i.test(camera.label || ''));
+    const selectedCameraId = (backCamera || cameras[0]).id;
+
+    await qrCodeScanner.start(
+      selectedCameraId,
+      {
+        fps: 10,
+        qrbox: { width: 220, height: 220 },
+        aspectRatio: 1
+      },
+      async function(decodedText) {
+        const scannedId = String(decodedText || '').trim();
+        if (!scannedId) return;
+
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = scannedId;
+
+        await closeScannerModal();
+        await searchPatient(scannedId);
+      },
+      function() {}
+    );
+
+    isScannerRunning = true;
+    setScannerStatus('Camera active. Align QR within frame.');
+  } catch (error) {
+    setScannerStatus(error.message || 'Unable to start camera. Allow permission or use manual Card ID.', true);
+  }
+}
+
+async function closeScannerModal() {
+  const modal = document.getElementById('scannerModal');
+  if (!modal) return;
+
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+
+  if (qrCodeScanner && isScannerRunning) {
+    try {
+      await qrCodeScanner.stop();
+      await qrCodeScanner.clear();
+    } catch {}
+  }
+
+  isScannerRunning = false;
 }
 
 // Setup search form

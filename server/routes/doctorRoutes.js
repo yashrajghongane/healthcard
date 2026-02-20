@@ -70,6 +70,7 @@ router.patch("/patient/:healthCardId", protect, authorize("doctor"), async (req,
       patient: {
         cardId: patient.healthCardId,
         healthCardId: patient.healthCardId,
+        qrCodeId: patient.qrCodeId || patient.healthCardId,
         name: patient.fullName,
         fullName: patient.fullName,
         dob: patient.dob,

@@ -154,7 +154,6 @@
             <input id="loginPassword" type="password" placeholder="••••••••" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none" />
           </div>
           <button type="submit" class="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-slate-950 shadow-md hover:bg-emerald-300 transition mt-2">Login</button>
-          <button id="resetDemoBtn" type="button" class="w-full rounded-xl border border-white/20 px-4 py-3 text-sm font-semibold text-slate-200 hover:border-amber-400 hover:text-amber-300 transition">Reset Demo Data</button>
           <div class="text-xs text-slate-400 pt-2">
             <span>New here? <a href="./register.html" class="text-emerald-300 hover:text-emerald-200 font-medium">Create account</a></span>
           </div>
@@ -170,7 +169,6 @@
     <script>
       const loginModal = document.getElementById("login-modal");
       const loginForm = document.getElementById("loginForm");
-      const resetDemoBtn = document.getElementById("resetDemoBtn");
       const openButtons = [
         document.getElementById("open-login"),
         document.getElementById("hero-login"),
@@ -230,14 +228,6 @@
         }
       });
 
-      resetDemoBtn?.addEventListener("click", function() {
-        const confirmed = window.confirm("This will clear all local demo data (users, patients, session). Continue?");
-        if (!confirmed) return;
-
-        resetDemoData();
-        alert("Demo data reset complete.");
-        window.location.reload();
-      });
     </script>
   </body>
 </html>

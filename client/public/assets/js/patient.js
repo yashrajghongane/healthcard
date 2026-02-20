@@ -12,8 +12,6 @@ async function initPatientDashboard() {
     return;
   }
 
-  setupResetDemoButton();
-
   // Get latest patient data from patientsDB
   const patientData = await getMyPatientProfile();
 
@@ -48,23 +46,10 @@ async function initPatientDashboard() {
   }
 
   // Generate QR Code
-  generateQRCode(patientData.cardId);
+  generateQRCode(patientData.qrCodeId || patientData.cardId);
 
   // Populate timeline
   populateTimeline(patientData.history || []);
-}
-
-function setupResetDemoButton() {
-  const resetButton = document.getElementById('resetDemoBtn');
-  if (!resetButton) return;
-
-  resetButton.addEventListener('click', function() {
-    const confirmed = window.confirm('This will clear all local demo data (users, patients, session). Continue?');
-    if (!confirmed) return;
-
-    resetDemoData();
-    window.location.href = '../index.html';
-  });
 }
 
 function showEmptyProfile(currentUser) {

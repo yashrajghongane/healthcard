@@ -23,7 +23,8 @@ const buildAuthResponse = async (user) => {
     return {
       ...baseUser,
       fullname: patient?.fullName || "Patient",
-      cardId: patient?.healthCardId || null
+      cardId: patient?.healthCardId || null,
+      qrCodeId: patient?.qrCodeId || patient?.healthCardId || null
     };
   }
 
