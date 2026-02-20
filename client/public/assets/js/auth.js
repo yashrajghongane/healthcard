@@ -235,6 +235,168 @@ async function loginAccount(email, password) {
   }
 }
 
+async function requestPasswordReset(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    return { success: false, message: 'Email is required' };
+  }
+
+  if (!AUTH_CONFIG.useBackend) {
+    return {
+      success: false,
+      message: 'Forgot password requires backend email service.'
+    };
+  }
+
+  try {
+    const response = await fetch(getApiUrl('/api/auth/forgot-password'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: normalizedEmail })
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.success === false) {
+      return {
+        success: false,
+        message: data.message || 'Failed to send reset code'
+      };
+    }
+
+    return {
+      success: true,
+      message: data.message || 'Reset code sent'
+    };
+  } catch (error) {
+    const url = getApiUrl('/api/auth/forgot-password');
+    const isNetworkError = error && (error.name === 'TypeError' || String(error.message || '').includes('Failed to fetch'));
+    return {
+      success: false,
+      message: isNetworkError
+        ? buildNetworkErrorMessage(url)
+        : (error.message || 'Failed to send reset code')
+    };
+  }
+}
+
+async function verifyResetCode(email, code) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedCode = String(code || '').trim();
+
+  if (!normalizedEmail || !normalizedCode) {
+    return { success: false, message: 'Email and code are required' };
+  }
+
+  if (!AUTH_CONFIG.useBackend) {
+    const flow = JSON.parse(localStorage.getItem('passwordResetFlow') || 'null');
+    if (!flow || flow.email !== normalizedEmail || flow.code !== normalizedCode || Number(flow.expiresAt || 0) < Date.now()) {
+      return { success: false, message: 'Invalid or expired code' };
+    }
+
+    localStorage.setItem('passwordResetFlow', JSON.stringify({
+      ...flow,
+      verified: true
+    }));
+
+    return { success: true, message: 'Code verified successfully' };
+  }
+
+  try {
+    const response = await fetch(getApiUrl('/api/auth/forgot-password/verify'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: normalizedEmail, code: normalizedCode })
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.success === false) {
+      return {
+        success: false,
+        message: data.message || 'Invalid or expired code'
+      };
+    }
+
+    return { success: true, message: data.message || 'Code verified successfully' };
+  } catch (error) {
+    const url = getApiUrl('/api/auth/forgot-password/verify');
+    const isNetworkError = error && (error.name === 'TypeError' || String(error.message || '').includes('Failed to fetch'));
+    return {
+      success: false,
+      message: isNetworkError
+        ? buildNetworkErrorMessage(url)
+        : (error.message || 'Code verification failed')
+    };
+  }
+}
+
+async function resetForgottenPassword(email, newPassword) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const trimmedPassword = String(newPassword || '').trim();
+
+  if (!normalizedEmail || !trimmedPassword) {
+    return { success: false, message: 'Email and password are required' };
+  }
+
+  if (trimmedPassword.length < 6) {
+    return { success: false, message: 'Password must be at least 6 characters' };
+  }
+
+  if (!AUTH_CONFIG.useBackend) {
+    const flow = JSON.parse(localStorage.getItem('passwordResetFlow') || 'null');
+    const users = JSON.parse(localStorage.getItem('users')) || {};
+
+    if (!flow || !flow.verified || flow.email !== normalizedEmail || Number(flow.expiresAt || 0) < Date.now()) {
+      return { success: false, message: 'Reset flow not verified' };
+    }
+
+    if (!users[normalizedEmail]) {
+      return { success: false, message: 'User not found' };
+    }
+
+    users[normalizedEmail] = {
+      ...users[normalizedEmail],
+      password: trimmedPassword
+    };
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.removeItem('passwordResetFlow');
+
+    return { success: true, message: 'Password updated successfully' };
+  }
+
+  try {
+    const response = await fetch(getApiUrl('/api/auth/forgot-password/reset'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: normalizedEmail, newPassword: trimmedPassword })
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.success === false) {
+      return {
+        success: false,
+        message: data.message || 'Password reset failed'
+      };
+    }
+
+    return { success: true, message: data.message || 'Password updated successfully' };
+  } catch (error) {
+    const url = getApiUrl('/api/auth/forgot-password/reset');
+    const isNetworkError = error && (error.name === 'TypeError' || String(error.message || '').includes('Failed to fetch'));
+    return {
+      success: false,
+      message: isNetworkError
+        ? buildNetworkErrorMessage(url)
+        : (error.message || 'Password reset failed')
+    };
+  }
+}
+
 // Logout function
 function logout() {
   localStorage.removeItem('authToken');

@@ -47,22 +47,23 @@
 
           <div>
             <label class="text-sm font-medium text-slate-300" for="fullname">Full Name</label>
-            <input id="fullname" type="text" placeholder="e.g. Aarav Sharma" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="fullname" type="text" placeholder="e.g. Aarav Sharma" required minlength="2" maxlength="80" pattern="[A-Za-z ]{2,80}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
 
           <div>
             <label class="text-sm font-medium text-slate-300" for="email">Email Address</label>
-            <input id="email" type="email" placeholder="you@example.com" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
 
           <div>
             <label class="text-sm font-medium text-slate-300" for="password">Password</label>
-            <input id="password" type="password" placeholder="Create a strong password" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="password" type="password" autocomplete="new-password" minlength="6" maxlength="72" placeholder="Create a strong password" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
 
           <button type="submit" id="submitBtn" class="w-full rounded-xl bg-emerald-400 px-4 py-3.5 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition mt-6">
             Register
           </button>
+          <p id="registerStatus" class="hidden rounded-lg border px-3 py-2 text-xs"></p>
         </form>
       </div>
     </main>
@@ -73,6 +74,15 @@
     </script>
     <script src="./assets/js/auth.js"></script>
     <script>
+      const registerStatus = document.getElementById('registerStatus');
+
+      function setRegisterStatus(message, isError = false) {
+        if (!registerStatus) return;
+        registerStatus.classList.remove('hidden');
+        registerStatus.className = `rounded-lg border px-3 py-2 text-xs ${isError ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`;
+        registerStatus.textContent = message;
+      }
+
       // Logic to toggle role-specific fields
       function toggleRoleFields() {
         const role = document.querySelector('input[name="role"]:checked').value;
@@ -88,15 +98,23 @@
       // Handle form submission
       document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        if (!this.reportValidity()) {
+          return;
+        }
         
         const role = document.querySelector('input[name="role"]:checked').value;
         const fullname = document.getElementById('fullname').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value.trim();
 
+        if (registerStatus) {
+          registerStatus.classList.add('hidden');
+        }
+
         // Validate inputs
         if (!fullname || !email || !password) {
-          alert('Please fill in all required fields.');
+          setRegisterStatus('Please fill in all required fields.', true);
           return;
         }
 
@@ -112,10 +130,12 @@
         const result = await registerAccount(userData);
 
         if (result.success) {
-          alert('Registration successful! Redirecting to login...');
-          window.location.href = 'index.html';
+          setRegisterStatus('Registration successful! Redirecting to login...');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 900);
         } else {
-          alert('Registration failed: ' + result.message);
+          setRegisterStatus('Registration failed: ' + result.message, true);
         }
       });
     </script>

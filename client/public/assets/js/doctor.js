@@ -3,6 +3,7 @@
 let currentPatientId = null;
 let qrCodeScanner = null;
 let isScannerRunning = false;
+let otpModalResolver = null;
 
 function formatAllergiesForDisplay(allergies) {
   if (Array.isArray(allergies)) {
@@ -123,6 +124,7 @@ function initDoctorDashboard() {
   setupScannerModal();
   setupAddRecordForm();
   setupProfileModal();
+  setupOtpModal();
 }
 
 function setupScannerModal() {
@@ -392,13 +394,13 @@ function setupAddRecordForm() {
     const inlineRelativePhone = recordRelativePhoneInput ? recordRelativePhoneInput.value.trim() : '';
 
     if (!diagnosis || !currentPatientId) {
-      alert('Please enter diagnosis and ensure a patient is selected.');
+      showSystemMessage('Please enter diagnosis and ensure a patient is selected.', 'error');
       return;
     }
 
     const patient = await getPatientByCardId(currentPatientId);
     if (!patient) {
-      alert('Patient not found. Please search again.');
+      showSystemMessage('Patient not found. Please search again.', 'error');
       return;
     }
 
@@ -414,7 +416,7 @@ function setupAddRecordForm() {
 
       const profileResult = await updatePatientData(currentPatientId, profileUpdate);
       if (!profileResult.success) {
-        alert(profileResult.message || 'Failed to update patient profile.');
+        showSystemMessage(profileResult.message || 'Failed to update patient profile.', 'error');
         return;
       }
 
@@ -439,13 +441,44 @@ function setupAddRecordForm() {
       return;
     }
 
+    const otpCheck = await runMedicalRecordOtpFlow(currentPatientId);
+    if (!otpCheck.success) {
+      showSystemMessage(otpCheck.message || 'OTP verification failed. Record not saved.', 'error');
+      return;
+    }
+
     await createRecord({ diagnosis, notes, treatment });
   });
 }
 
+async function runMedicalRecordOtpFlow(cardId) {
+  if (!cardId) {
+    return { success: false, message: 'Patient not selected' };
+  }
+
+  const otpSendResult = await requestMedicalRecordOtp(cardId);
+  if (!otpSendResult.success) {
+    return otpSendResult;
+  }
+
+  showSystemMessage('OTP sent to patient email.', 'success');
+
+  const otp = await openOtpModal();
+  if (!otp || !String(otp).trim()) {
+    return { success: false, message: 'OTP entry cancelled' };
+  }
+
+  const verifyResult = await verifyMedicalRecordOtp(cardId, otp.trim());
+  if (!verifyResult.success) {
+    return verifyResult;
+  }
+
+  return { success: true };
+}
+
 async function createRecord({ diagnosis, notes, treatment }) {
   if (!currentPatientId) {
-    alert('Select a patient first.');
+    showSystemMessage('Select a patient first.', 'error');
     return;
   }
 
@@ -487,7 +520,7 @@ async function createRecord({ diagnosis, notes, treatment }) {
     // Show success message
     showSuccessMessage('Record added successfully!');
   } else {
-    alert('Failed to add record: ' + result.message);
+    showSystemMessage('Failed to add record: ' + result.message, 'error');
   }
 }
 
@@ -522,7 +555,7 @@ function setupProfileModal() {
     const relativePhone = relativePhoneInput ? relativePhoneInput.value.trim() : '';
 
     if (!dob || !bloodGroup) {
-      alert('DOB and blood group are required before adding records.');
+      showSystemMessage('DOB and blood group are required before adding records.', 'error');
       return;
     }
 
@@ -535,7 +568,7 @@ function setupProfileModal() {
     });
 
     if (!updateResult.success) {
-      alert(updateResult.message || 'Failed to update patient profile.');
+      showSystemMessage(updateResult.message || 'Failed to update patient profile.', 'error');
       return;
     }
 
@@ -621,6 +654,89 @@ function showSuccessMessage(message) {
     successMsg.classList.add('animate-out', 'fade-out', 'slide-out-to-top-2');
     setTimeout(() => successMsg.remove(), 300);
   }, 3000);
+}
+
+function showSystemMessage(message, type = 'success') {
+  if (type === 'success') {
+    showSuccessMessage(message);
+    return;
+  }
+
+  const existingMsg = document.getElementById('errorToastMessage');
+  if (existingMsg) {
+    existingMsg.remove();
+  }
+
+  const errorMsg = document.createElement('div');
+  errorMsg.id = 'errorToastMessage';
+  errorMsg.className = 'fixed top-20 right-6 z-50 rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-3 text-red-200 shadow-lg animate-in slide-in-from-top-2 duration-300';
+  errorMsg.innerText = message;
+
+  document.body.appendChild(errorMsg);
+
+  setTimeout(() => {
+    errorMsg.classList.add('animate-out', 'fade-out', 'slide-out-to-top-2');
+    setTimeout(() => errorMsg.remove(), 300);
+  }, 3200);
+}
+
+function setupOtpModal() {
+  const otpForm = document.getElementById('otpForm');
+  const cancelBtn = document.getElementById('cancelOtpModal');
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => closeOtpModal(null));
+  }
+
+  if (otpForm) {
+    otpForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const otpInput = document.getElementById('otpInput');
+      const otp = otpInput ? String(otpInput.value || '').trim() : '';
+      if (!otp || otp.length !== 6) {
+        showSystemMessage('Please enter valid 6-digit OTP.', 'error');
+        return;
+      }
+      closeOtpModal(otp);
+    });
+  }
+}
+
+function openOtpModal() {
+  const modal = document.getElementById('otpModal');
+  const otpInput = document.getElementById('otpInput');
+
+  if (!modal) {
+    return Promise.resolve(null);
+  }
+
+  if (otpInput) {
+    otpInput.value = '';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  if (otpInput) {
+    setTimeout(() => otpInput.focus(), 0);
+  }
+
+  return new Promise((resolve) => {
+    otpModalResolver = resolve;
+  });
+}
+
+function closeOtpModal(value) {
+  const modal = document.getElementById('otpModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  if (otpModalResolver) {
+    const resolve = otpModalResolver;
+    otpModalResolver = null;
+    resolve(value);
+  }
 }
 
 // Initialize on DOM load

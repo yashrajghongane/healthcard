@@ -227,6 +227,25 @@
       </div>
     </div>
 
+    <div id="otpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4">
+      <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 md:p-8">
+        <h3 class="text-xl font-semibold text-white">Verify Patient OTP</h3>
+        <p class="mt-2 text-sm text-slate-400">OTP was sent to patient email. Enter OTP to allow medical record update.</p>
+
+        <form id="otpForm" class="mt-6 space-y-4">
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="otpInput">OTP Code</label>
+            <input id="otpInput" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="6-digit OTP" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm tracking-[0.3em] text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <button type="button" id="cancelOtpModal" class="rounded-xl border border-white/20 px-4 py-3 text-sm text-slate-200 hover:border-white/40 transition">Cancel</button>
+            <button type="submit" class="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Verify OTP</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="../assets/js/api.js"></script>
     <script>
       window.__HC_USE_BACKEND_AUTH__ = true;

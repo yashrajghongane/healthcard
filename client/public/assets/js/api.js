@@ -389,6 +389,67 @@ async function addMedicalRecord(cardId, record) {
   return { success: true, history: patientsDB[cardId].history };
 }
 
+async function requestMedicalRecordOtp(cardId) {
+  const { useBackend } = getRuntimeConfig();
+  if (!useBackend) {
+    return { success: true, message: 'OTP skipped in local mode' };
+  }
+
+  try {
+    const { response, data } = await apiRequest('/api/doctor/visit/request-otp', {
+      method: 'POST',
+      body: {
+        healthCardId: cardId
+      }
+    });
+
+    if (!response.ok || !data || data.success === false) {
+      return {
+        success: false,
+        message: (data && data.message) || 'Failed to send OTP'
+      };
+    }
+
+    return { success: true, message: data.message || 'OTP sent' };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || 'Failed to send OTP'
+    };
+  }
+}
+
+async function verifyMedicalRecordOtp(cardId, otp) {
+  const { useBackend } = getRuntimeConfig();
+  if (!useBackend) {
+    return { success: true, message: 'OTP skipped in local mode' };
+  }
+
+  try {
+    const { response, data } = await apiRequest('/api/doctor/visit/verify-otp', {
+      method: 'POST',
+      body: {
+        healthCardId: cardId,
+        otp: String(otp || '').trim()
+      }
+    });
+
+    if (!response.ok || !data || data.success === false) {
+      return {
+        success: false,
+        message: (data && data.message) || 'Invalid OTP'
+      };
+    }
+
+    return { success: true, message: data.message || 'OTP verified' };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || 'Failed to verify OTP'
+    };
+  }
+}
+
 // Get all patients (for doctor view)
 async function getAllPatients() {
   const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};

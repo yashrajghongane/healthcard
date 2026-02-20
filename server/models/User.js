@@ -5,13 +5,16 @@ const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true, minlength: 6 },
-    role: { type: String, enum: ["doctor", "patient"], required: true }
+    role: { type: String, enum: ["doctor", "patient"], required: true },
+    passwordResetCode: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null },
+    passwordResetVerified: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });

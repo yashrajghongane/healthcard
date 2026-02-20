@@ -30,7 +30,11 @@ const patientSchema = new mongoose.Schema(
     dob: Date,
     phoneNumber: String,
     relativePhoneNumber: String,
-    allergies: [String]
+    allergies: [String],
+    doctorUpdateOtpCode: { type: String, default: null },
+    doctorUpdateOtpExpires: { type: Date, default: null },
+    doctorUpdateOtpVerified: { type: Boolean, default: false },
+    doctorUpdateOtpRequestedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
   },
   { timestamps: true }
 );

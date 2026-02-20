@@ -246,6 +246,29 @@ Backend is intentionally decoupled for separate API development/testing.
 
 Not required for frontend-only mode.
 
+For backend auth + forgot-password email OTP, create `server/.env` (or copy from `server/.env.example`) and set:
+
+```dotenv
+PORT=5000
+MONGO_URI=<your_mongodb_uri>
+JWT_SECRET=<your_jwt_secret>
+
+MAKE_WEBHOOK_URL=https://hook.make.com/your_webhook_id
+MAKE_WEBHOOK_TOKEN=replace_with_shared_secret
+```
+
+Use **Make.com** scenario with a Custom Webhook trigger and an Email module. Map incoming fields like `toEmail`, `subject`, and `messageText`.
+
+Detailed step-by-step mapping guide: `server/MAKE_SCENARIO_SETUP.md`
+
+Then run backend:
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
 ---
 
 ## Common Issues & Solutions
