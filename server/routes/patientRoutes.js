@@ -23,6 +23,7 @@ router.get("/me", protect, authorize("patient"), async (req, res) => {
       bloodGroup: patient.bloodGroup,
       dob: patient.dob,
       phone: patient.phoneNumber,
+      relativePhone: patient.relativePhoneNumber,
       allergies: patient.allergies,
       history
     });

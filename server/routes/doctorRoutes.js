@@ -33,7 +33,7 @@ router.post("/visit", protect, authorize("doctor"), async (req, res) => {
 router.patch("/patient/:healthCardId", protect, authorize("doctor"), async (req, res) => {
   try {
     const { healthCardId } = req.params;
-    const { dob, bloodGroup, allergies, phone, phoneNumber } = req.body;
+    const { dob, bloodGroup, allergies, phone, phoneNumber, relativePhone, relativePhoneNumber } = req.body;
 
     const patient = await Patient.findOne({ healthCardId });
     if (!patient) return res.status(404).json({ message: "Patient not found" });
@@ -64,6 +64,11 @@ router.patch("/patient/:healthCardId", protect, authorize("doctor"), async (req,
       patient.phoneNumber = String(phoneValue || "").trim();
     }
 
+    if (typeof relativePhone !== "undefined" || typeof relativePhoneNumber !== "undefined") {
+      const relativePhoneValue = typeof relativePhoneNumber !== "undefined" ? relativePhoneNumber : relativePhone;
+      patient.relativePhoneNumber = String(relativePhoneValue || "").trim();
+    }
+
     await patient.save();
 
     res.json({
@@ -76,7 +81,8 @@ router.patch("/patient/:healthCardId", protect, authorize("doctor"), async (req,
         dob: patient.dob,
         bloodGroup: patient.bloodGroup || "",
         allergies: patient.allergies || [],
-        phone: patient.phoneNumber || ""
+        phone: patient.phoneNumber || "",
+        relativePhone: patient.relativePhoneNumber || ""
       }
     });
   } catch (error) {

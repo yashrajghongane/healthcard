@@ -31,12 +31,16 @@ async function initPatientDashboard() {
   const cardIdDisplay = document.getElementById('cardIdDisplay');
   const cardBlood = document.getElementById('cardBlood');
   const cardDob = document.getElementById('cardDob');
+  const cardPhone = document.getElementById('cardPhone');
+  const cardRelativePhone = document.getElementById('cardRelativePhone');
   const cardAllergies = document.getElementById('cardAllergies');
 
   if (cardName) cardName.innerText = patientData.name;
   if (cardIdDisplay) cardIdDisplay.innerText = `ID: ${patientData.cardId}`;
   if (cardBlood) cardBlood.innerText = patientData.bloodGroup || 'Not set';
   if (cardDob) cardDob.innerText = patientData.dob || 'Not set';
+  if (cardPhone) cardPhone.innerText = patientData.phone || 'Not set';
+  if (cardRelativePhone) cardRelativePhone.innerText = patientData.relativePhone || 'Not set';
   if (cardAllergies) {
     if (Array.isArray(patientData.allergies)) {
       cardAllergies.innerText = patientData.allergies.length ? patientData.allergies.join(', ') : 'Not set';
@@ -57,12 +61,16 @@ function showEmptyProfile(currentUser) {
   const cardIdDisplay = document.getElementById('cardIdDisplay');
   const cardBlood = document.getElementById('cardBlood');
   const cardDob = document.getElementById('cardDob');
+  const cardPhone = document.getElementById('cardPhone');
+  const cardRelativePhone = document.getElementById('cardRelativePhone');
   const cardAllergies = document.getElementById('cardAllergies');
 
   if (cardName) cardName.innerText = currentUser.fullname || 'Patient';
   if (cardIdDisplay) cardIdDisplay.innerText = `ID: ${currentUser.cardId || '--'}`;
   if (cardBlood) cardBlood.innerText = 'Not set';
   if (cardDob) cardDob.innerText = 'Not set';
+  if (cardPhone) cardPhone.innerText = 'Not set';
+  if (cardRelativePhone) cardRelativePhone.innerText = 'Not set';
   if (cardAllergies) cardAllergies.innerText = 'Not set';
 
   if (currentUser.cardId) {

@@ -29,6 +29,7 @@ const patientSchema = new mongoose.Schema(
     bloodGroup: String,
     dob: Date,
     phoneNumber: String,
+    relativePhoneNumber: String,
     allergies: [String]
   },
   { timestamps: true }

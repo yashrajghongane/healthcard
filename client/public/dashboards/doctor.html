@@ -84,6 +84,14 @@
                 <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Date of Birth</p>
                 <p class="text-base font-medium text-white mt-1" id="patientDob">--</p>
               </div>
+              <div>
+                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Phone</p>
+                <p class="text-sm font-medium text-white mt-1" id="patientPhone">--</p>
+              </div>
+              <div>
+                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Relative Phone</p>
+                <p class="text-sm font-medium text-white mt-1" id="patientRelativePhone">--</p>
+              </div>
               <div class="col-span-2 rounded-xl bg-slate-950/50 border border-white/5 p-4">
                 <p class="text-xs text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                   <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -114,6 +122,16 @@
               <div id="recordAllergiesWrap">
                 <label class="text-xs text-slate-300 font-medium mb-2 block">Known Allergies</label>
                 <input id="recordAllergies" type="text" placeholder="Comma separated, e.g. Penicillin, Dust" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="recordPhoneWrap">
+                  <label class="text-xs text-slate-300 font-medium mb-2 block">Phone</label>
+                  <input id="recordPhone" type="tel" placeholder="e.g. +91 9876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                </div>
+                <div id="recordRelativePhoneWrap">
+                  <label class="text-xs text-slate-300 font-medium mb-2 block">Relative Phone</label>
+                  <input id="recordRelativePhone" type="tel" placeholder="e.g. +91 9988776655" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                </div>
               </div>
               <div>
                 <label class="text-xs text-slate-300 font-medium mb-2 block">Diagnosis *</label>
@@ -172,6 +190,10 @@
           <div>
             <label class="text-xs text-slate-300 font-medium mb-2 block" for="profilePhone">Phone (optional)</label>
             <input id="profilePhone" type="tel" placeholder="e.g. +91 9876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileRelativePhone">Relative Phone (optional)</label>
+            <input id="profileRelativePhone" type="tel" placeholder="e.g. +91 9988776655" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
 
           <div class="grid grid-cols-2 gap-3 pt-2">

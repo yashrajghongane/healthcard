@@ -28,10 +28,16 @@ function hasAllergyValue(allergies) {
   return typeof allergies === 'string' && allergies.trim().length > 0;
 }
 
+function hasPhoneValue(phoneValue) {
+  return typeof phoneValue === 'string' && phoneValue.trim().length > 0;
+}
+
 function toggleInlineProfileInputsVisibility(patient) {
   const dobWrap = document.getElementById('recordDobWrap');
   const bloodWrap = document.getElementById('recordBloodGroupWrap');
   const allergiesWrap = document.getElementById('recordAllergiesWrap');
+  const phoneWrap = document.getElementById('recordPhoneWrap');
+  const relativePhoneWrap = document.getElementById('recordRelativePhoneWrap');
 
   if (dobWrap) {
     if (patient && patient.dob) {
@@ -56,12 +62,30 @@ function toggleInlineProfileInputsVisibility(patient) {
       allergiesWrap.classList.remove('hidden');
     }
   }
+
+  if (phoneWrap) {
+    if (patient && hasPhoneValue(patient.phone)) {
+      phoneWrap.classList.add('hidden');
+    } else {
+      phoneWrap.classList.remove('hidden');
+    }
+  }
+
+  if (relativePhoneWrap) {
+    if (patient && hasPhoneValue(patient.relativePhone)) {
+      relativePhoneWrap.classList.add('hidden');
+    } else {
+      relativePhoneWrap.classList.remove('hidden');
+    }
+  }
 }
 
 function setInlineProfileInputs(patient) {
   const dobInput = document.getElementById('recordDob');
   const bloodInput = document.getElementById('recordBloodGroup');
   const allergiesInput = document.getElementById('recordAllergies');
+  const phoneInput = document.getElementById('recordPhone');
+  const relativePhoneInput = document.getElementById('recordRelativePhone');
 
   if (dobInput) dobInput.value = patient.dob || '';
   if (bloodInput) bloodInput.value = patient.bloodGroup || '';
@@ -70,6 +94,8 @@ function setInlineProfileInputs(patient) {
       ? patient.allergies.join(', ')
       : (patient.allergies || '');
   }
+  if (phoneInput) phoneInput.value = patient.phone || '';
+  if (relativePhoneInput) relativePhoneInput.value = patient.relativePhone || '';
 
   toggleInlineProfileInputsVisibility(patient);
 }
@@ -245,12 +271,16 @@ async function searchPatient(cardId) {
     const patientId = document.getElementById('patientId');
     const patientBlood = document.getElementById('patientBlood');
     const patientDob = document.getElementById('patientDob');
+    const patientPhone = document.getElementById('patientPhone');
+    const patientRelativePhone = document.getElementById('patientRelativePhone');
     const patientAllergies = document.getElementById('patientAllergies');
 
     if (patientName) patientName.innerText = patient.name;
     if (patientId) patientId.innerText = `ID: ${currentPatientId}`;
     if (patientBlood) patientBlood.innerText = patient.bloodGroup || 'Not set';
     if (patientDob) patientDob.innerText = patient.dob || 'Not set';
+    if (patientPhone) patientPhone.innerText = patient.phone || 'Not set';
+    if (patientRelativePhone) patientRelativePhone.innerText = patient.relativePhone || 'Not set';
     if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(patient.allergies);
     setInlineProfileInputs(patient);
 
@@ -290,7 +320,7 @@ async function searchPatient(cardId) {
       profileAlert.classList.add('hidden');
     }
 
-    setInlineProfileInputs({ dob: '', bloodGroup: '', allergies: '' });
+    setInlineProfileInputs({ dob: '', bloodGroup: '', allergies: '', phone: '', relativePhone: '' });
     toggleInlineProfileInputsVisibility(null);
   }
 }
@@ -352,10 +382,14 @@ function setupAddRecordForm() {
     const recordDobInput = document.getElementById('recordDob');
     const recordBloodInput = document.getElementById('recordBloodGroup');
     const recordAllergiesInput = document.getElementById('recordAllergies');
+    const recordPhoneInput = document.getElementById('recordPhone');
+    const recordRelativePhoneInput = document.getElementById('recordRelativePhone');
 
     const inlineDob = recordDobInput ? recordDobInput.value : '';
     const inlineBloodGroup = recordBloodInput ? recordBloodInput.value.trim() : '';
     const inlineAllergies = recordAllergiesInput ? recordAllergiesInput.value : '';
+    const inlinePhone = recordPhoneInput ? recordPhoneInput.value.trim() : '';
+    const inlineRelativePhone = recordRelativePhoneInput ? recordRelativePhoneInput.value.trim() : '';
 
     if (!diagnosis || !currentPatientId) {
       alert('Please enter diagnosis and ensure a patient is selected.');
@@ -368,13 +402,14 @@ function setupAddRecordForm() {
       return;
     }
 
-    const shouldUpdateProfileInline = inlineDob || inlineBloodGroup || String(inlineAllergies || '').trim();
+    const shouldUpdateProfileInline = inlineDob || inlineBloodGroup || String(inlineAllergies || '').trim() || inlinePhone || inlineRelativePhone;
     if (shouldUpdateProfileInline) {
       const profileUpdate = {
         dob: inlineDob || patient.dob || '',
         bloodGroup: inlineBloodGroup || patient.bloodGroup || '',
         allergies: String(inlineAllergies || '').trim() ? inlineAllergies : patient.allergies,
-        phone: patient.phone || ''
+        phone: inlinePhone || patient.phone || '',
+        relativePhone: inlineRelativePhone || patient.relativePhone || ''
       };
 
       const profileResult = await updatePatientData(currentPatientId, profileUpdate);
@@ -385,9 +420,13 @@ function setupAddRecordForm() {
 
       const patientDob = document.getElementById('patientDob');
       const patientBlood = document.getElementById('patientBlood');
+      const patientPhone = document.getElementById('patientPhone');
+      const patientRelativePhone = document.getElementById('patientRelativePhone');
       const patientAllergies = document.getElementById('patientAllergies');
       if (patientDob) patientDob.innerText = profileResult.patient.dob || 'Not set';
       if (patientBlood) patientBlood.innerText = profileResult.patient.bloodGroup || 'Not set';
+      if (patientPhone) patientPhone.innerText = profileResult.patient.phone || 'Not set';
+      if (patientRelativePhone) patientRelativePhone.innerText = profileResult.patient.relativePhone || 'Not set';
       if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(profileResult.patient.allergies);
       setInlineProfileInputs(profileResult.patient);
 
@@ -474,11 +513,13 @@ function setupProfileModal() {
     const bloodInput = document.getElementById('profileBloodGroup');
     const allergiesInput = document.getElementById('profileAllergies');
     const phoneInput = document.getElementById('profilePhone');
+    const relativePhoneInput = document.getElementById('profileRelativePhone');
 
     const dob = dobInput ? dobInput.value : '';
     const bloodGroup = bloodInput ? bloodInput.value.trim() : '';
     const allergies = allergiesInput ? allergiesInput.value : '';
     const phone = phoneInput ? phoneInput.value.trim() : '';
+    const relativePhone = relativePhoneInput ? relativePhoneInput.value.trim() : '';
 
     if (!dob || !bloodGroup) {
       alert('DOB and blood group are required before adding records.');
@@ -489,7 +530,8 @@ function setupProfileModal() {
       dob,
       bloodGroup,
       allergies,
-      phone
+      phone,
+      relativePhone
     });
 
     if (!updateResult.success) {
@@ -499,11 +541,15 @@ function setupProfileModal() {
 
     const patientDob = document.getElementById('patientDob');
     const patientBlood = document.getElementById('patientBlood');
+    const patientPhone = document.getElementById('patientPhone');
+    const patientRelativePhone = document.getElementById('patientRelativePhone');
     const patientAllergies = document.getElementById('patientAllergies');
     const profileAlert = document.getElementById('profileMissingAlert');
 
     if (patientDob) patientDob.innerText = updateResult.patient.dob || 'Not set';
     if (patientBlood) patientBlood.innerText = updateResult.patient.bloodGroup || 'Not set';
+    if (patientPhone) patientPhone.innerText = updateResult.patient.phone || 'Not set';
+    if (patientRelativePhone) patientRelativePhone.innerText = updateResult.patient.relativePhone || 'Not set';
     if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(updateResult.patient.allergies);
     if (profileAlert) profileAlert.classList.add('hidden');
 
@@ -533,6 +579,7 @@ function openProfileModal(patient) {
   const bloodInput = document.getElementById('profileBloodGroup');
   const allergiesInput = document.getElementById('profileAllergies');
   const phoneInput = document.getElementById('profilePhone');
+  const relativePhoneInput = document.getElementById('profileRelativePhone');
 
   if (dobInput) dobInput.value = patient.dob || '';
   if (bloodInput) bloodInput.value = patient.bloodGroup || '';
@@ -542,6 +589,7 @@ function openProfileModal(patient) {
       : (patient.allergies || '');
   }
   if (phoneInput) phoneInput.value = patient.phone || '';
+  if (relativePhoneInput) relativePhoneInput.value = patient.relativePhone || '';
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');

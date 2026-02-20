@@ -10,6 +10,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
+import emergencyRoutes from "./routes/emergencyRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -32,7 +33,7 @@ app.get("/api/health", (req, res) => {
   res.json({ message: "HealthCard API Running" });
 });
 
-
+app.use("/api/", emergencyRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/patient", patientRoutes);

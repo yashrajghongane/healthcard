@@ -98,6 +98,7 @@ function mapBackendPatient(patient, history = []) {
     qrCodeId,
     name: patient.fullName || patient.name || '',
     phone: patient.phoneNumber || patient.phone || '',
+    relativePhone: patient.relativePhoneNumber || patient.relativePhone || '',
     dob: patient.dob ? new Date(patient.dob).toISOString().split('T')[0] : '',
     bloodGroup: patient.bloodGroup || '',
     allergies: normalizeAllergies(patient.allergies),
@@ -141,6 +142,7 @@ function registerUser(userData) {
     userData.dob = '';
     userData.bloodGroup = '';
     userData.phone = '';
+    userData.relativePhone = '';
     userData.allergies = [];
 
     // Add to patients database
@@ -151,6 +153,7 @@ function registerUser(userData) {
       qrCodeId: userData.qrCodeId,
       name: userData.fullname,
       phone: userData.phone || '',
+      relativePhone: userData.relativePhone || '',
       dob: userData.dob || '',
       bloodGroup: userData.bloodGroup || '',
       allergies: normalizeAllergies(userData.allergies),
