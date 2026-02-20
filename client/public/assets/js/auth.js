@@ -2,12 +2,44 @@
 
 const AUTH_CONFIG = {
   useBackend: Boolean(window.__HC_USE_BACKEND_AUTH__),
-  apiBaseUrl: window.__HC_API_BASE_URL__ || 'http://localhost:5000'
+  apiBaseUrl: resolveApiBaseUrl()
 };
+
+function resolveApiBaseUrl() {
+  if (window.__HC_API_BASE_URL__) {
+    return window.__HC_API_BASE_URL__;
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  const hostname = window.location.hostname || 'localhost';
+  const apiPort = window.__HC_API_PORT__ || '5000';
+
+  if (hostname.endsWith('.app.github.dev')) {
+    const codespacesHost = hostname.replace(/-\d+\.app\.github\.dev$/, `-${apiPort}.app.github.dev`);
+    return `${protocol}//${codespacesHost}`;
+  }
+
+  return `${protocol}//${hostname}:${apiPort}`;
+}
 
 function getApiUrl(path) {
   const base = String(AUTH_CONFIG.apiBaseUrl || '').replace(/\/$/, '');
   return `${base}${path}`;
+}
+
+function buildNetworkErrorMessage(url) {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname || '';
+
+    if (hostname.endsWith('.app.github.dev')) {
+      const stableHost = hostname.replace(/-\d+\.app\.github\.dev$/, '-5000.app.github.dev');
+      return `Cannot reach backend API at ${url}. In Codespaces, keep backend running and open app using https://${stableHost}/ (same origin on port 5000).`;
+    }
+  } catch {
+  }
+
+  return `Cannot reach backend API at ${url}. Start server with: cd server && npm run dev`;
 }
 
 function normalizeBackendUser(user) {
@@ -149,9 +181,13 @@ async function registerAccount(userData) {
 
     return { success: true, user, token: data.token || null };
   } catch (error) {
+    const url = getApiUrl('/api/auth/register');
+    const isNetworkError = error && (error.name === 'TypeError' || String(error.message || '').includes('Failed to fetch'));
     return {
       success: false,
-      message: error.message || 'Registration failed'
+      message: isNetworkError
+        ? buildNetworkErrorMessage(url)
+        : (error.message || 'Registration failed')
     };
   }
 }
@@ -188,9 +224,13 @@ async function loginAccount(email, password) {
 
     return { success: true, user, token: data.token || null };
   } catch (error) {
+    const url = getApiUrl('/api/auth/login');
+    const isNetworkError = error && (error.name === 'TypeError' || String(error.message || '').includes('Failed to fetch'));
     return {
       success: false,
-      message: error.message || 'Login failed'
+      message: isNetworkError
+        ? buildNetworkErrorMessage(url)
+        : (error.message || 'Login failed')
     };
   }
 }
