@@ -12,18 +12,20 @@ function initPatientDashboard() {
     return;
   }
 
+  setupResetDemoButton();
+
   // Get latest patient data from patientsDB
   const patientData = getPatientByCardId(currentUser.cardId);
-  
-  if (!patientData) {
-    console.error('Patient data not found');
-    return;
-  }
 
   // Populate header
   const headerName = document.getElementById('headerName');
   if (headerName) {
-    headerName.innerText = patientData.name;
+    headerName.innerText = currentUser.fullname || 'Patient';
+  }
+
+  if (!patientData) {
+    showEmptyProfile(currentUser);
+    return;
   }
 
   // Populate card info
@@ -37,13 +39,52 @@ function initPatientDashboard() {
   if (cardIdDisplay) cardIdDisplay.innerText = `ID: ${patientData.cardId}`;
   if (cardBlood) cardBlood.innerText = patientData.bloodGroup || 'Not set';
   if (cardDob) cardDob.innerText = patientData.dob || 'Not set';
-  if (cardAllergies) cardAllergies.innerText = patientData.allergies || 'None';
+  if (cardAllergies) {
+    if (Array.isArray(patientData.allergies)) {
+      cardAllergies.innerText = patientData.allergies.length ? patientData.allergies.join(', ') : 'Not set';
+    } else {
+      cardAllergies.innerText = patientData.allergies || 'Not set';
+    }
+  }
 
   // Generate QR Code
   generateQRCode(patientData.cardId);
 
   // Populate timeline
   populateTimeline(patientData.history || []);
+}
+
+function setupResetDemoButton() {
+  const resetButton = document.getElementById('resetDemoBtn');
+  if (!resetButton) return;
+
+  resetButton.addEventListener('click', function() {
+    const confirmed = window.confirm('This will clear all local demo data (users, patients, session). Continue?');
+    if (!confirmed) return;
+
+    resetDemoData();
+    window.location.href = '../index.html';
+  });
+}
+
+function showEmptyProfile(currentUser) {
+  const cardName = document.getElementById('cardName');
+  const cardIdDisplay = document.getElementById('cardIdDisplay');
+  const cardBlood = document.getElementById('cardBlood');
+  const cardDob = document.getElementById('cardDob');
+  const cardAllergies = document.getElementById('cardAllergies');
+
+  if (cardName) cardName.innerText = currentUser.fullname || 'Patient';
+  if (cardIdDisplay) cardIdDisplay.innerText = `ID: ${currentUser.cardId || '--'}`;
+  if (cardBlood) cardBlood.innerText = 'Not set';
+  if (cardDob) cardDob.innerText = 'Not set';
+  if (cardAllergies) cardAllergies.innerText = 'Not set';
+
+  if (currentUser.cardId) {
+    generateQRCode(currentUser.cardId);
+  }
+
+  populateTimeline([]);
 }
 
 // Generate QR Code
@@ -94,8 +135,10 @@ function populateTimeline(history) {
         </div>
         
         <p class="text-sm font-medium text-white mb-2">Attending: ${visit.doctor}</p>
-        <div class="rounded-xl bg-slate-950/50 border border-white/5 p-4 text-sm text-slate-300 leading-relaxed">
-          ${visit.notes}
+        <div class="rounded-xl bg-slate-950/50 border border-white/5 p-4 text-sm text-slate-300 leading-relaxed space-y-2">
+          <p><span class="text-slate-400">Diagnosis:</span> ${visit.diagnosis || 'Not provided'}</p>
+          ${visit.treatment ? `<p><span class="text-slate-400">Treatment:</span> ${visit.treatment}</p>` : ''}
+          ${visit.notes ? `<p><span class="text-slate-400">Notes:</span> ${visit.notes}</p>` : ''}
         </div>
       </div>
     `;

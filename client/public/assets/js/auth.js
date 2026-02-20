@@ -1,86 +1,80 @@
 // Login/Logout & Session logic
 
-// Initialize localStorage with default users if empty
-function initializeDefaultUsers() {
-  if (!localStorage.getItem('users')) {
-    const defaultUsers = {
-      // Default patient
-      'patient1@example.com': {
-        email: 'patient1@example.com',
-        password: 'patient123',
-        role: 'patient',
-        fullname: 'Aarav Sharma',
-        cardId: 'HC-8472-9910',
-        dob: '14 May 1992',
-        bloodGroup: 'O+',
-        allergies: 'Penicillin, Peanuts',
-        history: [
-          {
-            date: '12 Feb 2026',
-            time: '10:30 AM',
-            doctor: 'Dr. Mehta',
-            clinic: 'City Care Clinic',
-            notes: 'Patient reported mild headaches and fatigue. Blood pressure normal (120/80). Prescribed rest and standard multivitamin course.'
-          },
-          {
-            date: '05 Nov 2025',
-            time: '02:15 PM',
-            doctor: 'Dr. Sarah Jenkins',
-            clinic: 'Metro Hospital',
-            notes: 'Annual physical checkup. All vitals within normal ranges. Updated tetanus booster shot.'
-          }
-        ]
-      },
-      // Default doctor
-      'doctor1@example.com': {
-        email: 'doctor1@example.com',
-        password: 'doctor123',
-        role: 'doctor',
-        fullname: 'Dr. Mehta',
-        license: 'MED-123456'
-      }
-    };
-    localStorage.setItem('users', JSON.stringify(defaultUsers));
+const AUTH_CONFIG = {
+  useBackend: Boolean(window.__HC_USE_BACKEND_AUTH__),
+  apiBaseUrl: window.__HC_API_BASE_URL__ || 'http://localhost:5000'
+};
+
+function getApiUrl(path) {
+  const base = String(AUTH_CONFIG.apiBaseUrl || '').replace(/\/$/, '');
+  return `${base}${path}`;
+}
+
+function normalizeBackendUser(user) {
+  if (!user) return null;
+
+  return {
+    ...user,
+    fullname: user.fullname || user.fullName || '',
+    role: user.role || 'patient'
+  };
+}
+
+function saveSessionUser(user, token) {
+  if (token) {
+    localStorage.setItem('authToken', token);
   }
 
-  // Initialize patients database for doctors to search
+  if (user) {
+    localStorage.setItem('currentUser', JSON.stringify(user));
+  }
+}
+
+function removeLegacyMockData() {
+  const users = JSON.parse(localStorage.getItem('users')) || {};
+  const userKeys = Object.keys(users);
+
+  const hasOnlyLegacyUsers =
+    userKeys.length === 2 &&
+    users['patient1@example.com'] &&
+    users['doctor1@example.com'];
+
+  if (hasOnlyLegacyUsers) {
+    localStorage.setItem('users', JSON.stringify({}));
+  }
+
+  const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
+  const patientKeys = Object.keys(patientsDB);
+
+  const hasOnlyLegacyPatient =
+    patientKeys.length === 1 &&
+    patientsDB['HC-8472-9910'];
+
+  if (hasOnlyLegacyPatient) {
+    localStorage.setItem('patientsDB', JSON.stringify({}));
+  }
+
+}
+
+function initializeStorage() {
+  if (!localStorage.getItem('users')) {
+    localStorage.setItem('users', JSON.stringify({}));
+  }
+
   if (!localStorage.getItem('patientsDB')) {
-    const patientsDB = {
-      'HC-8472-9910': {
-        cardId: 'HC-8472-9910',
-        name: 'Aarav Sharma',
-        dob: '14 May 1992',
-        bloodGroup: 'O+',
-        allergies: 'Penicillin, Peanuts',
-        history: [
-          {
-            date: '12 Feb 2026',
-            time: '10:30 AM',
-            doctor: 'Dr. Mehta',
-            clinic: 'City Care Clinic',
-            notes: 'Patient reported mild headaches and fatigue. Blood pressure normal (120/80). Prescribed rest and standard multivitamin course.'
-          },
-          {
-            date: '05 Nov 2025',
-            time: '02:15 PM',
-            doctor: 'Dr. Sarah Jenkins',
-            clinic: 'Metro Hospital',
-            notes: 'Annual physical checkup. All vitals within normal ranges. Updated tetanus booster shot.'
-          }
-        ]
-      }
-    };
-    localStorage.setItem('patientsDB', JSON.stringify(patientsDB));
+    localStorage.setItem('patientsDB', JSON.stringify({}));
   }
 }
 
 // Call on page load
-initializeDefaultUsers();
+removeLegacyMockData();
+initializeStorage();
 
 // Login function
-function login(email, password, role) {
+function login(email, password) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
   const users = JSON.parse(localStorage.getItem('users')) || {};
-  const user = users[email];
+  const user = users[normalizedEmail];
 
   if (!user) {
     return { success: false, message: 'User not found' };
@@ -90,19 +84,105 @@ function login(email, password, role) {
     return { success: false, message: 'Incorrect password' };
   }
 
-  if (user.role !== role) {
-    return { success: false, message: 'Invalid role selected' };
-  }
-
   // Store session
   localStorage.setItem('currentUser', JSON.stringify(user));
   return { success: true, user: user };
 }
 
+async function registerAccount(userData) {
+  if (!AUTH_CONFIG.useBackend) {
+    return registerUser(userData);
+  }
+
+  try {
+    const payload = {
+      email: String(userData.email || '').trim().toLowerCase(),
+      password: String(userData.password || '').trim(),
+      role: userData.role,
+      fullname: userData.fullname,
+      fullName: userData.fullname
+    };
+
+    const response = await fetch(getApiUrl('/api/auth/register'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        message: data.message || 'Registration failed'
+      };
+    }
+
+    const user = normalizeBackendUser(data.user);
+    saveSessionUser(user, data.token || null);
+
+    return { success: true, user, token: data.token || null };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || 'Registration failed'
+    };
+  }
+}
+
+async function loginAccount(email, password) {
+  if (!AUTH_CONFIG.useBackend) {
+    return login(email, password);
+  }
+
+  try {
+    const payload = {
+      email: String(email || '').trim().toLowerCase(),
+      password: String(password || '').trim()
+    };
+
+    const response = await fetch(getApiUrl('/api/auth/login'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        message: data.message || 'Login failed'
+      };
+    }
+
+    const user = normalizeBackendUser(data.user);
+    saveSessionUser(user, data.token || null);
+
+    return { success: true, user, token: data.token || null };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || 'Login failed'
+    };
+  }
+}
+
 // Logout function
 function logout() {
+  localStorage.removeItem('authToken');
   localStorage.removeItem('currentUser');
   window.location.href = '../index.html';
+}
+
+function resetDemoData() {
+  localStorage.removeItem('users');
+  localStorage.removeItem('patientsDB');
+  localStorage.removeItem('currentUser');
+  localStorage.removeItem('authToken');
+  initializeStorage();
 }
 
 // Get current logged-in user

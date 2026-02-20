@@ -142,20 +142,9 @@
         <div class="space-y-2">
           <p class="text-sm uppercase tracking-widest text-emerald-300">Welcome back</p>
           <h2 class="text-2xl font-semibold text-white">Login to HealthCard</h2>
-          <p class="text-sm text-slate-400">Choose your role to continue.</p>
+          <p class="text-sm text-slate-400">Enter your credentials to continue.</p>
         </div>
         <form id="loginForm" class="mt-6 space-y-4">
-          <div>
-            <label class="text-sm text-slate-200">Select role</label>
-            <div class="mt-2 grid grid-cols-2 gap-3">
-              <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-medium text-slate-200 hover:bg-white/10 transition">
-                <input type="radio" name="role" value="patient" class="text-emerald-400" checked /> Patient
-              </label>
-              <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-medium text-slate-200 hover:bg-white/10 transition">
-                <input type="radio" name="role" value="doctor" class="text-emerald-400" /> Doctor
-              </label>
-            </div>
-          </div>
           <div>
             <label class="text-sm text-slate-200" for="loginEmail">Email</label>
             <input id="loginEmail" type="email" placeholder="you@clinic.com" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none" />
@@ -165,6 +154,7 @@
             <input id="loginPassword" type="password" placeholder="••••••••" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none" />
           </div>
           <button type="submit" class="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-slate-950 shadow-md hover:bg-emerald-300 transition mt-2">Login</button>
+          <button id="resetDemoBtn" type="button" class="w-full rounded-xl border border-white/20 px-4 py-3 text-sm font-semibold text-slate-200 hover:border-amber-400 hover:text-amber-300 transition">Reset Demo Data</button>
           <div class="text-xs text-slate-400 pt-2">
             <span>New here? <a href="./register.html" class="text-emerald-300 hover:text-emerald-200 font-medium">Create account</a></span>
           </div>
@@ -177,6 +167,7 @@
     <script>
       const loginModal = document.getElementById("login-modal");
       const loginForm = document.getElementById("loginForm");
+      const resetDemoBtn = document.getElementById("resetDemoBtn");
       const openButtons = [
         document.getElementById("open-login"),
         document.getElementById("hero-login"),
@@ -206,12 +197,11 @@
       });
 
       // Handle login form submission
-      loginForm.addEventListener("submit", function(e) {
+      loginForm.addEventListener("submit", async function(e) {
         e.preventDefault();
 
         const email = document.getElementById("loginEmail").value.trim();
         const password = document.getElementById("loginPassword").value.trim();
-        const role = document.querySelector('input[name="role"]:checked').value;
 
         if (!email || !password) {
           alert("Please enter email and password");
@@ -219,18 +209,31 @@
         }
 
         // Call login function from auth.js
-        const result = login(email, password, role);
+        const result = await loginAccount(email, password);
 
         if (result.success) {
-          // Redirect based on role
-          if (role === 'patient') {
+          const authenticatedRole = result.user && result.user.role ? result.user.role : null;
+
+          // Redirect based on authenticated role
+          if (authenticatedRole === 'patient') {
             window.location.href = './dashboards/patient.html';
-          } else if (role === 'doctor') {
+          } else if (authenticatedRole === 'doctor') {
             window.location.href = './dashboards/doctor.html';
+          } else {
+            alert('Login succeeded, but role is missing for this account.');
           }
         } else {
           alert("Login failed: " + result.message);
         }
+      });
+
+      resetDemoBtn?.addEventListener("click", function() {
+        const confirmed = window.confirm("This will clear all local demo data (users, patients, session). Continue?");
+        if (!confirmed) return;
+
+        resetDemoData();
+        alert("Demo data reset complete.");
+        window.location.reload();
       });
     </script>
   </body>

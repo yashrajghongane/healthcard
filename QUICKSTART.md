@@ -13,17 +13,9 @@
   - `patient.js` - Patient logic
   - `doctor.js` - Doctor logic
 
-### ✅ Backend (Just Created - Auth Only)
-- **Express.js server** with MongoDB
-- **Authentication endpoints**:
-  - `POST /api/auth/register` - Register new user
-  - `POST /api/auth/login` - Login with JWT
-  - `GET /api/auth/me` - Get current user (protected)
-  - `POST /api/auth/logout` - Logout
-- **User Model** with password hashing (bcryptjs)
-- **JWT token verification** middleware
-- **Input validation** with express-validator
-- **CORS enabled** for frontend communication
+### ✅ Backend (Separate Track)
+- Backend APIs are being built and tested separately.
+- Current frontend does not depend on backend endpoints.
 
 ---
 
@@ -61,47 +53,7 @@ healthcard/
 ## How to Run
 
 ### Prerequisites
-1. **MongoDB** installed and running locally
-   ```bash
-   # macOS (if using Homebrew)
-   brew services start mongodb-community
-   
-   # Linux
-   sudo systemctl start mongod
-   
-   # Or use MongoDB Atlas (cloud)
-   ```
-
-2. **Node.js** and **npm** installed
-
-### Backend Setup
-
-```bash
-# 1. Navigate to server directory
-cd server
-
-# 2. Install dependencies
-npm install
-
-# 3. The .env file is already created with:
-# PORT=5000
-# MONGODB_URI=mongodb://localhost:27017/healthcard
-# JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-# JWT_EXPIRE=7d
-
-# 4. Start the server (development with auto-reload)
-npm run dev
-
-# OR production mode
-npm start
-```
-
-Expected output:
-```
-✅ Server running on http://localhost:5000
-📝 Mode: development
-✅ MongoDB Connected: localhost
-```
+1. **Python 3** or VS Code Live Server
 
 ### Frontend Setup
 
@@ -140,9 +92,8 @@ npx http-server client/public
 - Enter credentials:
   - Email: john@example.com
   - Password: password123
-  - Role: Patient
 - Click Login
-- Should redirect to `/dashboards/patient.html`
+- Should redirect automatically based on account role
 
 ### 3. **Patient Dashboard**
 - See your health card with QR code
@@ -150,45 +101,72 @@ npx http-server client/public
 - Click logout to return to home
 
 ### 4. **Doctor Registration & Login**
-- Register as a doctor with:
-  - Medical License: MED-123456
+- Register as a doctor (no license field required)
 - Login with doctor credentials
 - Try to search for patient using card ID (HC-XXXX-XXXX format)
+
+### 5. **Doctor Dashboard (Updated Flow)**
+- Search patient by `cardId` or `qrCodeId`
+- If patient profile is missing `dob`, `bloodGroup`, or `allergies`, a popup appears
+- Doctor must complete profile fields before saving a visit record
+- Add visit record using:
+  - `diagnosis` (required)
+  - `notes` (optional)
+  - `treatment` (optional)
+- New records are appended to the top of patient history timeline
 
 ---
 
 ## API Endpoints Reference
 
-### Authentication Endpoints
+Frontend-only mode: no API calls are required.
 
-**Register:**
+### Enable Backend Auth (Doctor + Patient)
+
+If your backend auth endpoints are ready, enable frontend integration by adding these lines in [client/public/index.html](client/public/index.html) and [client/public/register.html](client/public/register.html) before loading `auth.js`:
+
+```html
+<script>
+  window.__HC_USE_BACKEND_AUTH__ = true;
+  window.__HC_API_BASE_URL__ = 'http://localhost:5000';
+</script>
+```
+
+Frontend then calls:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+
+Expected registration payload example (doctor):
+
+```json
+{
+  "email": "doctor1@mail.com",
+  "password": "123456",
+  "role": "doctor",
+  "fullName": "Dr John"
+}
+```
+
+Expected response fields used by frontend:
+- `token`
+- `user.role`
+
+Direct API test (backend):
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "fullname": "John Doe",
-    "email": "john@example.com",
-    "password": "password123",
-    "role": "patient"
+    "email": "doctor1@mail.com",
+    "password": "123456",
+    "role": "doctor",
+    "fullName": "Dr John"
   }'
 ```
 
-**Login:**
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "password123",
-    "role": "patient"
-  }'
-```
-
-**Get Current User (Protected):**
-```bash
-curl -X GET http://localhost:5000/api/auth/me \
-  -H "Authorization: Bearer <JWT_TOKEN>"
-```
+After successful login/register, frontend stores:
+- `authToken` (if returned)
+- `currentUser`
 
 ---
 
@@ -203,12 +181,33 @@ localStorage['patientsDB']  → Patient health data
 localStorage['currentUser'] → Current session
 ```
 
-### Backend (MongoDB - with JWT)
+Updated patient object in `patientsDB`:
 ```
-Database: healthcard
-Collection: users
-Fields: fullname, email, password(hashed), role, license, cardId
+{
+  _id: string,              // card id
+  cardId: string,
+  qrCodeId: string,         // unique, used by QR
+  name: string,
+  dob: string,              // optional
+  phone: string,            // optional
+  bloodGroup: string,       // optional
+  allergies: string[],      // optional, persistent
+  history: MedicalRecord[]
+}
+
+MedicalRecord = {
+  diagnosis: string,        // required
+  notes: string,            // optional
+  treatment: string,        // optional
+  doctor: string,
+  clinic: string,
+  date: string,
+  time: string
+}
 ```
+
+### Backend
+Backend is intentionally decoupled for separate API development/testing.
 
 ---
 
@@ -216,76 +215,32 @@ Fields: fullname, email, password(hashed), role, license, cardId
 
 ### ✅ What Works:
 - User registration (patient/doctor)
-- Login with JWT authentication
+- Login with localStorage session
 - Session management
 - Role-based dashboards
 - Patient health card display
 - QR code generation
 - Medical history timeline (frontend only)
+- Doctor updates to patient profile and records (frontend only)
 
-### ⏳ Coming Next (Medical Data):
-- Backend endpoints for medical records
-- Patient search functionality
-- Add medical records endpoint
-- Doctor-patient data persistence
-- Real database operations for medical data
+### ⏳ Coming Next (Backend Integration):
+- Connect frontend flows to your separate backend APIs
+- Replace frontend-generated card ID with backend-generated card ID
 
 ---
 
-## Environment Variables Explanation
+## Environment Variables
 
-**`.env` file contains:**
-
-```
-PORT=5000
-  → Server runs on http://localhost:5000
-
-MONGODB_URI=mongodb://localhost:27017/healthcard
-  → Connects to local MongoDB
-  → For MongoDB Atlas: mongodb+srv://user:password@cluster.mongodb.net/healthcard
-
-JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-  → Secret key for signing JWT tokens
-  → MUST be changed in production!
-  → Use a strong random string
-
-JWT_EXPIRE=7d
-  → Token expires after 7 days
-  → Valid formats: '2h', '7d', '30d'
-
-NODE_ENV=development
-  → Shows detailed errors in development
-  → Set to 'production' for deployment
-```
+Not required for frontend-only mode.
 
 ---
 
 ## Common Issues & Solutions
 
-### Issue: "MongoDB connection failed"
+### Issue: "Login failed"
 **Solution:**
-- Ensure MongoDB is running: `mongo` or `mongosh`
-- Check if using MongoDB Atlas, update MONGODB_URI
-- If using localhost, create database first in MongoDB
-
-### Issue: "Cannot find module 'express'"
-**Solution:**
-```bash
-cd server
-npm install
-```
-
-### Issue: "CORS error when connecting from frontend"
-**Solution:**
-- Backend server must be running on port 5000
-- Frontend must call `http://localhost:5000/api/auth/...`
-- Already configured in server.js
-
-### Issue: "Token expired or invalid"
-**Solution:**
-- Log in again to get a new token
-- Token stored in localStorage is valid for 7 days
-- Check Authorization header: `Bearer <token>`
+- Register user first from `/register.html`
+- Ensure email/password are correct
 
 ---
 
@@ -297,63 +252,41 @@ npm install
 - **Vanilla JavaScript** - No frameworks yet
 - **QRCode.js** - QR code generation
 
-### Backend
-- **Node.js** - Runtime environment
-- **Express.js** - Web framework
-- **MongoDB** - NoSQL database
-- **Mongoose** - ODM for MongoDB
-- **bcryptjs** - Password hashing
-- **jsonwebtoken (JWT)** - Token authentication
-- **express-validator** - Input validation
-- **CORS** - Cross-origin requests
-- **dotenv** - Environment variables
+### Backend (separate workstream)
+- APIs and DB integration are developed and tested independently.
 
 ---
 
 ## Documentation Files
 
 1. **CODEBASE_EXPLANATION.md** - Complete codebase documentation
-2. **server/README.md** - Backend API documentation
+2. **server/README.md** - Backend API documentation (separate)
 3. This file - Quick start guide
 
 ---
 
-## Next Phase: Adding Medical Data
+## Next Phase: Backend Integration
 
-After confirming authentication works, we'll add:
-1. `POST /api/patients/search` - Search by card ID
-2. `GET /api/patients/:id` - Get patient data
-3. `POST /api/patients/:id/records` - Add medical record
-4. `GET /api/patients/:id/records` - Get medical history
-5. Update frontend to use API instead of localStorage
+When backend APIs are ready, wire frontend to:
+1. Search patient by card ID
+2. Create/update patient profile
+3. Add medical records
+4. Fetch medical history
+5. Replace localStorage with backend persistence
 
 ---
 
 ## Support & Debugging
 
-**Check if backend is running:**
-```bash
-curl http://localhost:5000/api/health
-# Response: {"status": "Server is running", "timestamp": "..."}
-```
-
-**Check MongoDB connection:**
-```bash
-mongosh
-# Then type: use healthcard
-#            db.users.find()
-```
-
-**View server logs** (if using npm run dev with nodemon):
-```
-All requests and errors are logged to console
-```
+**Reset frontend state (optional):**
+1. Open browser DevTools
+2. Clear `localStorage`
+3. Register users again
 
 ---
 
 **You're all set! 🎉**
-- Frontend is ready with UI
-- Backend is ready with authentication
-- Next: Medical data endpoints
+- Frontend is fully working without backend
+- Backend can now be tested separately
 
 For detailed explanations, see **CODEBASE_EXPLANATION.md**

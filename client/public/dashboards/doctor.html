@@ -22,9 +22,12 @@
         </div>
         <div class="flex items-center gap-4">
           <div class="hidden sm:block text-right pr-4 border-r border-white/10">
-            <p class="text-sm font-medium text-white">Dr. Sarah Jenkins</p>
+            <p class="text-sm font-medium text-white" id="headerName">Doctor</p>
             <p class="text-xs text-slate-400">Cardiology Dept.</p>
           </div>
+          <button id="resetDemoBtn" type="button" class="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-200 hover:border-amber-400 hover:text-amber-300 transition">
+            Reset Demo Data
+          </button>
           <button onclick="logout()" class="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-200 hover:border-red-400 hover:text-red-400 transition">
             Logout
           </button>
@@ -45,7 +48,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <input type="text" id="searchInput" placeholder="e.g. HC-8472-9910" class="w-full rounded-xl border border-white/10 bg-slate-900/80 pl-11 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition shadow-inner" value="HC-8472-9910">
+            <input type="text" id="searchInput" placeholder="e.g. HC-8472-9910" class="w-full rounded-xl border border-white/10 bg-slate-900/80 pl-11 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition shadow-inner">
           </div>
           <button type="submit" class="whitespace-nowrap rounded-xl bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_0_15px_rgba(52,211,153,0.2)] hover:bg-emerald-300 transition-all">
             Access Records
@@ -90,14 +93,40 @@
                 <p class="text-sm font-medium text-amber-300" id="patientAllergies">--</p>
               </div>
             </div>
+
+            <div id="profileMissingAlert" class="hidden mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 text-sm">
+              Patient profile is incomplete. Add DOB and blood group before saving a new visit record.
+            </div>
           </div>
 
           <div class="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-900/20 to-slate-900 p-6 md:p-8 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
             <h3 class="text-lg font-semibold text-white mb-4">Add New Visit Record</h3>
             <form id="addRecordForm" class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="recordDobWrap">
+                  <label class="text-xs text-slate-300 font-medium mb-2 block">Date of Birth</label>
+                  <input id="recordDob" type="date" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                </div>
+                <div id="recordBloodGroupWrap">
+                  <label class="text-xs text-slate-300 font-medium mb-2 block">Blood Group</label>
+                  <input id="recordBloodGroup" type="text" placeholder="e.g. O+" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                </div>
+              </div>
+              <div id="recordAllergiesWrap">
+                <label class="text-xs text-slate-300 font-medium mb-2 block">Known Allergies</label>
+                <input id="recordAllergies" type="text" placeholder="Comma separated, e.g. Penicillin, Dust" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+              </div>
               <div>
-                <label class="text-xs text-slate-300 font-medium mb-2 block">Clinical Notes & Prescription</label>
-                <textarea id="medicalNotes" rows="4" placeholder="Enter symptoms, diagnosis, and prescribed treatments..." required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition resize-none"></textarea>
+                <label class="text-xs text-slate-300 font-medium mb-2 block">Diagnosis *</label>
+                <input id="medicalDiagnosis" type="text" placeholder="Enter diagnosis" required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-300 font-medium mb-2 block">Notes</label>
+                <textarea id="medicalNotes" rows="3" placeholder="Clinical notes" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition resize-none"></textarea>
+              </div>
+              <div>
+                <label class="text-xs text-slate-300 font-medium mb-2 block">Treatment</label>
+                <textarea id="medicalTreatment" rows="3" placeholder="Prescribed treatment" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition resize-none"></textarea>
               </div>
               <button type="submit" class="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 shadow-md hover:bg-emerald-300 transition-all flex justify-center items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -123,134 +152,39 @@
       </div>
     </main>
 
-    <script>
-      // 1. Mock Database (Simulating Express/MongoDB)
-      const database = {
-        "HC-8472-9910": {
-          name: "Aarav Sharma",
-          dob: "14 May 1992",
-          bloodGroup: "O+",
-          allergies: "Penicillin, Peanuts",
-          history: [
-            {
-              date: "12 Feb 2026",
-              time: "10:30 AM",
-              doctor: "Dr. Mehta",
-              clinic: "City Care Clinic",
-              notes: "Patient reported mild headaches and fatigue. Blood pressure normal (120/80). Prescribed rest and standard multivitamin course."
-            }
-          ]
-        }
-      };
+    <div id="profileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4">
+      <div class="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-6 md:p-8">
+        <h3 class="text-xl font-semibold text-white">Complete Patient Profile</h3>
+        <p class="mt-2 text-sm text-slate-400">DOB and blood group are required before adding a visit record.</p>
 
-      let currentPatientId = null;
+        <form id="profileForm" class="mt-6 space-y-4">
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileDob">Date of Birth *</label>
+            <input id="profileDob" type="date" required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileBloodGroup">Blood Group *</label>
+            <input id="profileBloodGroup" type="text" placeholder="e.g. O+" required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileAllergies">Known Allergies (optional)</label>
+            <input id="profileAllergies" type="text" placeholder="Comma separated, e.g. Penicillin, Peanuts" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profilePhone">Phone (optional)</label>
+            <input id="profilePhone" type="tel" placeholder="e.g. +91 9876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          </div>
 
-      // 2. Handle Patient Search
-      document.getElementById('searchForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const query = document.getElementById('searchInput').value.trim();
-        const workspace = document.getElementById('patientWorkspace');
-        const errorMsg = document.getElementById('errorMessage');
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <button type="button" id="closeProfileModal" class="rounded-xl border border-white/20 px-4 py-3 text-sm text-slate-200 hover:border-white/40 transition">Cancel</button>
+            <button type="submit" class="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Save Profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-        if (database[query]) {
-          currentPatientId = query;
-          const patient = database[query];
-          
-          // Populate UI
-          document.getElementById('patientName').innerText = patient.name;
-          document.getElementById('patientId').innerText = `ID: ${query}`;
-          document.getElementById('patientBlood').innerText = patient.bloodGroup;
-          document.getElementById('patientDob').innerText = patient.dob;
-          document.getElementById('patientAllergies').innerText = patient.allergies;
-
-          renderTimeline(patient.history);
-
-          // Reveal workspace
-          errorMsg.classList.add('hidden');
-          workspace.classList.remove('hidden');
-          workspace.classList.add('grid');
-        } else {
-          // Hide workspace, show error
-          workspace.classList.add('hidden');
-          workspace.classList.remove('grid');
-          errorMsg.classList.remove('hidden');
-        }
-      });
-
-      // 3. Render Timeline Function
-      function renderTimeline(historyArray) {
-        const container = document.getElementById('timelineContainer');
-        container.innerHTML = ""; 
-
-        if (historyArray.length === 0) {
-          container.innerHTML = `<p class="text-sm text-slate-500 pl-6 italic">No previous medical history found.</p>`;
-          return;
-        }
-
-        historyArray.forEach((visit, index) => {
-          // Highlight newest record with emerald
-          const dotColor = index === 0 ? "bg-emerald-400 ring-emerald-400/20" : "bg-slate-600 ring-slate-800";
-          const titleColor = index === 0 ? "text-emerald-400" : "text-slate-300";
-
-          container.innerHTML += `
-            <div class="relative pl-6 sm:pl-8 animate-in fade-in slide-in-from-left-2 duration-300">
-              <span class="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ${dotColor} ring-4"></span>
-              
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
-                <h3 class="text-sm font-bold ${titleColor}">${visit.date} <span class="text-xs font-normal text-slate-500 ml-2">${visit.time}</span></h3>
-                <span class="text-xs font-medium text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded border border-white/5">${visit.clinic}</span>
-              </div>
-              
-              <p class="text-sm font-medium text-white mb-2">Attending: ${visit.doctor}</p>
-              <div class="rounded-xl bg-slate-950/50 border border-white/5 p-4 text-sm text-slate-300 leading-relaxed">
-                ${visit.notes}
-              </div>
-            </div>
-          `;
-        });
-      }
-
-      // 4. Handle Adding a New Record (Timestamp Logic)
-      document.getElementById('addRecordForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const notes = document.getElementById('medicalNotes').value;
-        if(!notes || !currentPatientId) return;
-
-        // Generate Current Timestamp
-        const now = new Date();
-        const optionsDate = { day: '2-digit', month: 'short', year: 'numeric' };
-        const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: true };
-        
-        const formattedDate = now.toLocaleDateString('en-GB', optionsDate); // e.g. "20 Feb 2026"
-        const formattedTime = now.toLocaleTimeString('en-US', optionsTime); // e.g. "01:34 PM"
-
-        // Create new record object
-        const newRecord = {
-          date: formattedDate,
-          time: formattedTime,
-          doctor: "Dr. Sarah Jenkins",
-          clinic: "Metro Hospital Cardiology",
-          notes: notes
-        };
-
-        // Add to front of history array (unshift)
-        database[currentPatientId].history.unshift(newRecord);
-
-        // Re-render the timeline to show the new record instantly
-        renderTimeline(database[currentPatientId].history);
-
-        // Clear the form
-        document.getElementById('medicalNotes').value = "";
-        
-        // Optional: Show success alert
-        alert("Record securely added and timestamped.");
-      });
-
-      // 5. Logout
-      function logout() {
-        window.location.href = 'index.html';
-      }
-    </script>
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/doctor.js"></script>
   </body>
 </html>

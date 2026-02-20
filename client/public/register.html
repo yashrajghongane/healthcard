@@ -55,12 +55,6 @@
             <input id="email" type="email" placeholder="you@example.com" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
 
-          <div id="doctorFields" class="hidden animate-in fade-in slide-in-from-top-2 duration-300">
-            <label class="text-sm font-medium text-slate-300" for="license">Medical License Number</label>
-            <input id="license" type="text" placeholder="e.g. MED-847291" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-            <p class="text-xs text-slate-500 mt-2">Required for doctor verification.</p>
-          </div>
-
           <div>
             <label class="text-sm font-medium text-slate-300" for="password">Password</label>
             <input id="password" type="password" placeholder="Create a strong password" required class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
@@ -79,39 +73,27 @@
       // Logic to toggle role-specific fields
       function toggleRoleFields() {
         const role = document.querySelector('input[name="role"]:checked').value;
-        const doctorFields = document.getElementById('doctorFields');
         const submitBtn = document.getElementById('submitBtn');
-        const licenseInput = document.getElementById('license');
 
         if (role === 'doctor') {
-          doctorFields.classList.remove('hidden');
-          licenseInput.setAttribute('required', 'true');
           submitBtn.innerText = 'Register as Doctor';
         } else {
-          doctorFields.classList.add('hidden');
-          licenseInput.removeAttribute('required');
           submitBtn.innerText = 'Register';
         }
       }
 
       // Handle form submission
-      document.getElementById('registerForm').addEventListener('submit', function(e) {
+      document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const role = document.querySelector('input[name="role"]:checked').value;
         const fullname = document.getElementById('fullname').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value.trim();
-        const license = document.getElementById('license').value.trim();
 
         // Validate inputs
         if (!fullname || !email || !password) {
           alert('Please fill in all required fields.');
-          return;
-        }
-
-        if (role === 'doctor' && !license) {
-          alert('Medical License Number is required for doctors.');
           return;
         }
 
@@ -123,12 +105,8 @@
           role
         };
 
-        if (role === 'doctor') {
-          userData.license = license;
-        }
-
         // Register user
-        const result = registerUser(userData);
+        const result = await registerAccount(userData);
 
         if (result.success) {
           alert('Registration successful! Redirecting to login...');

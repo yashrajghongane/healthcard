@@ -1,37 +1,61 @@
 // Shared data management functions
 
+function normalizeAllergies(allergiesValue) {
+  if (Array.isArray(allergiesValue)) {
+    return allergiesValue
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof allergiesValue === 'string') {
+    return allergiesValue
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 // Register a new user
 function registerUser(userData) {
   const users = JSON.parse(localStorage.getItem('users')) || {};
+  const normalizedEmail = String(userData.email || '').trim().toLowerCase();
+  userData.email = normalizedEmail;
   
   // Check if user already exists
-  if (users[userData.email]) {
+  if (users[normalizedEmail]) {
     return { success: false, message: 'User already exists' };
   }
 
   // Generate card ID for patients
   if (userData.role === 'patient') {
     userData.cardId = generateCardId();
+    userData.qrCodeId = userData.cardId;
     userData.history = [];
     userData.dob = '';
     userData.bloodGroup = '';
-    userData.allergies = 'None';
+    userData.phone = '';
+    userData.allergies = [];
 
     // Add to patients database
     const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
     patientsDB[userData.cardId] = {
+      _id: userData.cardId,
       cardId: userData.cardId,
+      qrCodeId: userData.qrCodeId,
       name: userData.fullname,
-      dob: userData.dob || 'Not set',
-      bloodGroup: userData.bloodGroup || 'Not set',
-      allergies: userData.allergies,
+      phone: userData.phone || '',
+      dob: userData.dob || '',
+      bloodGroup: userData.bloodGroup || '',
+      allergies: normalizeAllergies(userData.allergies),
       history: []
     };
     localStorage.setItem('patientsDB', JSON.stringify(patientsDB));
   }
 
   // Save user
-  users[userData.email] = userData;
+  users[normalizedEmail] = userData;
   localStorage.setItem('users', JSON.stringify(users));
 
   return { success: true, user: userData };
@@ -47,7 +71,12 @@ function generateCardId() {
 // Get patient data by card ID
 function getPatientByCardId(cardId) {
   const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
-  return patientsDB[cardId] || null;
+  if (patientsDB[cardId]) {
+    return patientsDB[cardId];
+  }
+
+  const allPatients = Object.values(patientsDB);
+  return allPatients.find((patient) => patient.qrCodeId === cardId) || null;
 }
 
 // Update patient data
@@ -58,14 +87,20 @@ function updatePatientData(cardId, data) {
     return { success: false, message: 'Patient not found' };
   }
 
-  patientsDB[cardId] = { ...patientsDB[cardId], ...data };
+  const payload = { ...data };
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'allergies')) {
+    payload.allergies = normalizeAllergies(payload.allergies);
+  }
+
+  patientsDB[cardId] = { ...patientsDB[cardId], ...payload };
   localStorage.setItem('patientsDB', JSON.stringify(patientsDB));
 
   // Also update in users if this patient is registered
   const users = JSON.parse(localStorage.getItem('users')) || {};
   for (let email in users) {
     if (users[email].cardId === cardId) {
-      users[email] = { ...users[email], ...data };
+      users[email] = { ...users[email], ...payload };
       localStorage.setItem('users', JSON.stringify(users));
       
       // Update current user session if it's them
@@ -92,17 +127,32 @@ function addMedicalRecord(cardId, record) {
     patientsDB[cardId].history = [];
   }
 
+  const normalizedRecord = {
+    diagnosis: String(record.diagnosis || '').trim(),
+    notes: String(record.notes || '').trim(),
+    treatment: String(record.treatment || record.treatement || '').trim(),
+    doctor: String(record.doctor || '').trim(),
+    clinic: String(record.clinic || '').trim()
+  };
+
+  if (!normalizedRecord.diagnosis) {
+    return { success: false, message: 'Diagnosis is required' };
+  }
+
   // Add timestamp if not provided
   if (!record.date || !record.time) {
     const now = new Date();
     const optionsDate = { day: '2-digit', month: 'short', year: 'numeric' };
     const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: true };
-    record.date = now.toLocaleDateString('en-GB', optionsDate);
-    record.time = now.toLocaleTimeString('en-US', optionsTime);
+    normalizedRecord.date = now.toLocaleDateString('en-GB', optionsDate);
+    normalizedRecord.time = now.toLocaleTimeString('en-US', optionsTime);
+  } else {
+    normalizedRecord.date = record.date;
+    normalizedRecord.time = record.time;
   }
 
   // Add to beginning of history array
-  patientsDB[cardId].history.unshift(record);
+  patientsDB[cardId].history.unshift(normalizedRecord);
   localStorage.setItem('patientsDB', JSON.stringify(patientsDB));
 
   // Also update in users database
@@ -112,7 +162,7 @@ function addMedicalRecord(cardId, record) {
       if (!users[email].history) {
         users[email].history = [];
       }
-      users[email].history.unshift(record);
+      users[email].history.unshift(normalizedRecord);
       localStorage.setItem('users', JSON.stringify(users));
       
       // Update current user session if it's them

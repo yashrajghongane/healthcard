@@ -2,6 +2,76 @@
 
 let currentPatientId = null;
 
+function formatAllergiesForDisplay(allergies) {
+  if (Array.isArray(allergies)) {
+    return allergies.length ? allergies.join(', ') : 'Not set';
+  }
+
+  if (typeof allergies === 'string' && allergies.trim()) {
+    return allergies;
+  }
+
+  return 'Not set';
+}
+
+function hasIncompleteProfile(patient) {
+  return !patient.dob || !patient.bloodGroup;
+}
+
+function hasAllergyValue(allergies) {
+  if (Array.isArray(allergies)) {
+    return allergies.length > 0;
+  }
+
+  return typeof allergies === 'string' && allergies.trim().length > 0;
+}
+
+function toggleInlineProfileInputsVisibility(patient) {
+  const dobWrap = document.getElementById('recordDobWrap');
+  const bloodWrap = document.getElementById('recordBloodGroupWrap');
+  const allergiesWrap = document.getElementById('recordAllergiesWrap');
+
+  if (dobWrap) {
+    if (patient && patient.dob) {
+      dobWrap.classList.add('hidden');
+    } else {
+      dobWrap.classList.remove('hidden');
+    }
+  }
+
+  if (bloodWrap) {
+    if (patient && patient.bloodGroup) {
+      bloodWrap.classList.add('hidden');
+    } else {
+      bloodWrap.classList.remove('hidden');
+    }
+  }
+
+  if (allergiesWrap) {
+    if (patient && hasAllergyValue(patient.allergies)) {
+      allergiesWrap.classList.add('hidden');
+    } else {
+      allergiesWrap.classList.remove('hidden');
+    }
+  }
+}
+
+function setInlineProfileInputs(patient) {
+  const dobInput = document.getElementById('recordDob');
+  const bloodInput = document.getElementById('recordBloodGroup');
+  const allergiesInput = document.getElementById('recordAllergies');
+
+  if (dobInput) dobInput.value = patient.dob || '';
+  if (bloodInput) bloodInput.value = patient.bloodGroup || '';
+  if (allergiesInput) {
+    allergiesInput.value = Array.isArray(patient.allergies)
+      ? patient.allergies.join(', ')
+      : (patient.allergies || '');
+  }
+
+  toggleInlineProfileInputsVisibility(patient);
+}
+
 // Initialize doctor dashboard
 function initDoctorDashboard() {
   // Check authentication
@@ -23,6 +93,21 @@ function initDoctorDashboard() {
   // Setup event listeners
   setupSearchForm();
   setupAddRecordForm();
+  setupProfileModal();
+  setupResetDemoButton();
+}
+
+function setupResetDemoButton() {
+  const resetButton = document.getElementById('resetDemoBtn');
+  if (!resetButton) return;
+
+  resetButton.addEventListener('click', function() {
+    const confirmed = window.confirm('This will clear all local demo data (users, patients, session). Continue?');
+    if (!confirmed) return;
+
+    resetDemoData();
+    window.location.href = '../index.html';
+  });
 }
 
 // Setup search form
@@ -49,7 +134,7 @@ function searchPatient(cardId) {
   const patient = getPatientByCardId(cardId);
 
   if (patient) {
-    currentPatientId = cardId;
+    currentPatientId = patient.cardId || cardId;
     
     // Populate UI
     const patientName = document.getElementById('patientName');
@@ -59,10 +144,20 @@ function searchPatient(cardId) {
     const patientAllergies = document.getElementById('patientAllergies');
 
     if (patientName) patientName.innerText = patient.name;
-    if (patientId) patientId.innerText = `ID: ${cardId}`;
+    if (patientId) patientId.innerText = `ID: ${currentPatientId}`;
     if (patientBlood) patientBlood.innerText = patient.bloodGroup || 'Not set';
     if (patientDob) patientDob.innerText = patient.dob || 'Not set';
-    if (patientAllergies) patientAllergies.innerText = patient.allergies || 'None';
+    if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(patient.allergies);
+    setInlineProfileInputs(patient);
+
+    const profileAlert = document.getElementById('profileMissingAlert');
+    if (profileAlert) {
+      if (hasIncompleteProfile(patient)) {
+        profileAlert.classList.remove('hidden');
+      } else {
+        profileAlert.classList.add('hidden');
+      }
+    }
 
     // Render timeline
     renderTimeline(patient.history || []);
@@ -85,6 +180,14 @@ function searchPatient(cardId) {
       errorMsg.classList.remove('hidden');
     }
     currentPatientId = null;
+
+    const profileAlert = document.getElementById('profileMissingAlert');
+    if (profileAlert) {
+      profileAlert.classList.add('hidden');
+    }
+
+    setInlineProfileInputs({ dob: '', bloodGroup: '', allergies: '' });
+    toggleInlineProfileInputsVisibility(null);
   }
 }
 
@@ -115,8 +218,10 @@ function renderTimeline(historyArray) {
         </div>
         
         <p class="text-sm font-medium text-white mb-2">Attending: ${visit.doctor}</p>
-        <div class="rounded-xl bg-slate-950/50 border border-white/5 p-4 text-sm text-slate-300 leading-relaxed">
-          ${visit.notes}
+        <div class="rounded-xl bg-slate-950/50 border border-white/5 p-4 text-sm text-slate-300 leading-relaxed space-y-2">
+          <p><span class="text-slate-400">Diagnosis:</span> ${visit.diagnosis || 'Not provided'}</p>
+          ${visit.treatment ? `<p><span class="text-slate-400">Treatment:</span> ${visit.treatment}</p>` : ''}
+          ${visit.notes ? `<p><span class="text-slate-400">Notes:</span> ${visit.notes}</p>` : ''}
         </div>
       </div>
     `;
@@ -131,39 +236,219 @@ function setupAddRecordForm() {
 
   addRecordForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    const notes = document.getElementById('medicalNotes').value.trim();
-    if (!notes || !currentPatientId) {
-      alert('Please enter medical notes and ensure a patient is selected.');
+
+    const diagnosisInput = document.getElementById('medicalDiagnosis');
+    const notesInput = document.getElementById('medicalNotes');
+    const treatmentInput = document.getElementById('medicalTreatment');
+
+    const diagnosis = diagnosisInput ? diagnosisInput.value.trim() : '';
+    const notes = notesInput ? notesInput.value.trim() : '';
+    const treatment = treatmentInput ? treatmentInput.value.trim() : '';
+
+    const recordDobInput = document.getElementById('recordDob');
+    const recordBloodInput = document.getElementById('recordBloodGroup');
+    const recordAllergiesInput = document.getElementById('recordAllergies');
+
+    const inlineDob = recordDobInput ? recordDobInput.value : '';
+    const inlineBloodGroup = recordBloodInput ? recordBloodInput.value.trim() : '';
+    const inlineAllergies = recordAllergiesInput ? recordAllergiesInput.value : '';
+
+    if (!diagnosis || !currentPatientId) {
+      alert('Please enter diagnosis and ensure a patient is selected.');
       return;
     }
 
-    const currentUser = getCurrentUser();
-    const doctorName = currentUser ? currentUser.fullname : 'Doctor';
+    const patient = getPatientByCardId(currentPatientId);
+    if (!patient) {
+      alert('Patient not found. Please search again.');
+      return;
+    }
 
-    // Create new record
-    const newRecord = {
-      doctor: doctorName,
-      clinic: 'HealthCard Clinic',
-      notes: notes
-    };
+    const shouldUpdateProfileInline = inlineDob || inlineBloodGroup || String(inlineAllergies || '').trim();
+    if (shouldUpdateProfileInline) {
+      const profileUpdate = {
+        dob: inlineDob || patient.dob || '',
+        bloodGroup: inlineBloodGroup || patient.bloodGroup || '',
+        allergies: String(inlineAllergies || '').trim() ? inlineAllergies : patient.allergies,
+        phone: patient.phone || ''
+      };
 
-    // Add record to patient history
-    const result = addMedicalRecord(currentPatientId, newRecord);
+      const profileResult = updatePatientData(currentPatientId, profileUpdate);
+      if (!profileResult.success) {
+        alert(profileResult.message || 'Failed to update patient profile.');
+        return;
+      }
 
-    if (result.success) {
-      // Re-render the timeline
-      renderTimeline(result.history);
+      const patientDob = document.getElementById('patientDob');
+      const patientBlood = document.getElementById('patientBlood');
+      const patientAllergies = document.getElementById('patientAllergies');
+      if (patientDob) patientDob.innerText = profileResult.patient.dob || 'Not set';
+      if (patientBlood) patientBlood.innerText = profileResult.patient.bloodGroup || 'Not set';
+      if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(profileResult.patient.allergies);
+      setInlineProfileInputs(profileResult.patient);
 
-      // Clear the form
-      document.getElementById('medicalNotes').value = '';
-      
-      // Show success message
-      showSuccessMessage('Record added successfully!');
-    } else {
-      alert('Failed to add record: ' + result.message);
+      // Frontend-only mode: patient profile is stored in localStorage
+    }
+
+    const refreshedPatient = getPatientByCardId(currentPatientId);
+    if (!refreshedPatient || hasIncompleteProfile(refreshedPatient)) {
+      openProfileModal(refreshedPatient || patient);
+      return;
+    }
+
+    createRecord({ diagnosis, notes, treatment });
+  });
+}
+
+function createRecord({ diagnosis, notes, treatment }) {
+  if (!currentPatientId) {
+    alert('Select a patient first.');
+    return;
+  }
+
+  const currentUser = getCurrentUser();
+  const doctorName = currentUser ? currentUser.fullname : 'Doctor';
+
+  // Create new record
+  const newRecord = {
+    doctor: doctorName,
+    clinic: 'HealthCard Clinic',
+    diagnosis,
+    notes,
+    treatment
+  };
+
+  // Add record to patient history
+  const result = addMedicalRecord(currentPatientId, newRecord);
+
+  if (result.success) {
+    // Re-render the timeline
+    renderTimeline(result.history);
+
+    // Refresh patient summary
+    const updatedPatient = getPatientByCardId(currentPatientId);
+    const patientAllergies = document.getElementById('patientAllergies');
+    if (patientAllergies && updatedPatient) {
+      patientAllergies.innerText = formatAllergiesForDisplay(updatedPatient.allergies);
+    }
+
+    // Clear the form
+    const diagnosisInput = document.getElementById('medicalDiagnosis');
+    const notesInput = document.getElementById('medicalNotes');
+    const treatmentInput = document.getElementById('medicalTreatment');
+
+    if (diagnosisInput) diagnosisInput.value = '';
+    if (notesInput) notesInput.value = '';
+    if (treatmentInput) treatmentInput.value = '';
+
+    // Show success message
+    showSuccessMessage('Record added successfully!');
+  } else {
+    alert('Failed to add record: ' + result.message);
+  }
+}
+
+function setupProfileModal() {
+  const profileForm = document.getElementById('profileForm');
+  const cancelButton = document.getElementById('closeProfileModal');
+
+  if (cancelButton) {
+    cancelButton.addEventListener('click', closeProfileModal);
+  }
+
+  if (!profileForm) return;
+
+  profileForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (!currentPatientId) {
+      closeProfileModal();
+      return;
+    }
+
+    const dobInput = document.getElementById('profileDob');
+    const bloodInput = document.getElementById('profileBloodGroup');
+    const allergiesInput = document.getElementById('profileAllergies');
+    const phoneInput = document.getElementById('profilePhone');
+
+    const dob = dobInput ? dobInput.value : '';
+    const bloodGroup = bloodInput ? bloodInput.value.trim() : '';
+    const allergies = allergiesInput ? allergiesInput.value : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+
+    if (!dob || !bloodGroup) {
+      alert('DOB and blood group are required before adding records.');
+      return;
+    }
+
+    const updateResult = updatePatientData(currentPatientId, {
+      dob,
+      bloodGroup,
+      allergies,
+      phone
+    });
+
+    if (!updateResult.success) {
+      alert(updateResult.message || 'Failed to update patient profile.');
+      return;
+    }
+
+    const patientDob = document.getElementById('patientDob');
+    const patientBlood = document.getElementById('patientBlood');
+    const patientAllergies = document.getElementById('patientAllergies');
+    const profileAlert = document.getElementById('profileMissingAlert');
+
+    if (patientDob) patientDob.innerText = updateResult.patient.dob || 'Not set';
+    if (patientBlood) patientBlood.innerText = updateResult.patient.bloodGroup || 'Not set';
+    if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(updateResult.patient.allergies);
+    if (profileAlert) profileAlert.classList.add('hidden');
+
+    // Frontend-only mode: patient profile is stored in localStorage
+
+    closeProfileModal();
+
+    const diagnosisInput = document.getElementById('medicalDiagnosis');
+    const notesInput = document.getElementById('medicalNotes');
+    const treatmentInput = document.getElementById('medicalTreatment');
+
+    const diagnosis = diagnosisInput ? diagnosisInput.value.trim() : '';
+    const notes = notesInput ? notesInput.value.trim() : '';
+    const treatment = treatmentInput ? treatmentInput.value.trim() : '';
+
+    if (diagnosis) {
+      createRecord({ diagnosis, notes, treatment });
     }
   });
+}
+
+function openProfileModal(patient) {
+  const modal = document.getElementById('profileModal');
+  if (!modal) return;
+
+  const dobInput = document.getElementById('profileDob');
+  const bloodInput = document.getElementById('profileBloodGroup');
+  const allergiesInput = document.getElementById('profileAllergies');
+  const phoneInput = document.getElementById('profilePhone');
+
+  if (dobInput) dobInput.value = patient.dob || '';
+  if (bloodInput) bloodInput.value = patient.bloodGroup || '';
+  if (allergiesInput) {
+    allergiesInput.value = Array.isArray(patient.allergies)
+      ? patient.allergies.join(', ')
+      : (patient.allergies || '');
+  }
+  if (phoneInput) phoneInput.value = patient.phone || '';
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeProfileModal() {
+  const modal = document.getElementById('profileModal');
+  if (!modal) return;
+
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
 }
 
 // Show success message
