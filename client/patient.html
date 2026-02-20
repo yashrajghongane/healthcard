@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/app.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+<button onclick="logout()" class="mb-4 bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+
+<div class="bg-white p-6 rounded shadow">
+  <h2 class="text-xl font-bold mb-4">My Medical Profile</h2>
+  <div id="profile"></div>
+  <h3 class="text-lg font-bold mt-6">Medical History</h3>
+  <div id="history"></div>
+</div>
+
+<script>
+async function loadProfile() {
+  const data = await authFetch("/patient/me");
+
+  profile.innerHTML = `
+    <p><strong>Name:</strong> ${data.fullName}</p>
+    <p><strong>Health Card:</strong> ${data.healthCardId}</p>
+    <p><strong>Blood Group:</strong> ${data.bloodGroup || "-"}</p>
+    <p><strong>Allergies:</strong> ${(data.allergies || []).join(", ")}</p>
+  `;
+
+  history.innerHTML = data.history.map(r => `
+    <div class="border p-3 mb-3">
+      <p><strong>Date:</strong> ${new Date(r.visitDate).toLocaleDateString()}</p>
+      <p><strong>Diagnosis:</strong> ${r.diagnosis}</p>
+      <p><strong>Notes:</strong> ${r.notes || "-"}</p>
+      <p><strong>Treatments:</strong> ${r.treatments.join(", ")}</p>
+    </div>
+  `).join("");
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

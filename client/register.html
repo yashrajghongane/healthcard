@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/app.js"></script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center h-screen">
+
+<div class="bg-white p-8 rounded shadow w-96">
+  <h2 class="text-2xl font-bold mb-4">Register</h2>
+
+  <input id="fullName" placeholder="Full Name" class="w-full p-2 border mb-3" />
+  <input id="email" type="email" placeholder="Email" class="w-full p-2 border mb-3" />
+  <input id="password" type="password" placeholder="Password" class="w-full p-2 border mb-3" />
+
+  <select id="role" class="w-full p-2 border mb-3">
+    <option value="patient">Patient</option>
+    <option value="doctor">Doctor</option>
+  </select>
+
+  <button onclick="register()" class="w-full bg-blue-600 text-white p-2 rounded">
+    Register
+  </button>
+
+  <p class="mt-3 text-sm">
+    Already have account?
+    <a href="login.html" class="text-blue-600">Login</a>
+  </p>
+</div>
+
+<script>
+async function register() {
+  const res = await fetch(API_BASE + "/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fullName: fullName.value,
+      email: email.value,
+      password: password.value,
+      role: role.value
+    })
+  });
+
+  const data = await res.json();
+  setAuth(data.token, data.role);
+
+  if (data.role === "doctor") {
+    window.location.href = "doctor.html";
+  } else {
+    window.location.href = "patient.html";
+  }
+}
+</script>
+
+</body>
+</html>

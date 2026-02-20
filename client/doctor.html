@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/app.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+<button onclick="logout()" class="mb-4 bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+
+<div class="bg-white p-6 rounded shadow mb-6">
+  <h2 class="text-xl font-bold mb-4">Search Patient</h2>
+  <input id="healthCardId" placeholder="Enter Health Card ID" class="border p-2 w-full mb-3"/>
+  <button onclick="fetchPatient()" class="bg-blue-600 text-white px-4 py-2 rounded">
+    Get Patient
+  </button>
+</div>
+
+<div id="patientSection" class="hidden">
+
+  <div class="bg-white p-6 rounded shadow mb-6">
+    <h3 class="text-lg font-bold">Patient Info</h3>
+    <div id="patientInfo"></div>
+  </div>
+
+  <div class="bg-white p-6 rounded shadow mb-6">
+    <h3 class="text-lg font-bold mb-3">Add Visit</h3>
+    <input id="diagnosis" placeholder="Diagnosis" class="border p-2 w-full mb-3"/>
+    <textarea id="notes" placeholder="Notes" class="border p-2 w-full mb-3"></textarea>
+    <input id="treatments" placeholder="Treatments (comma separated)" class="border p-2 w-full mb-3"/>
+    <button onclick="addVisit()" class="bg-green-600 text-white px-4 py-2 rounded">
+      Add Visit
+    </button>
+  </div>
+
+  <div class="bg-white p-6 rounded shadow">
+    <h3 class="text-lg font-bold mb-3">History</h3>
+    <div id="history"></div>
+  </div>
+
+</div>
+
+<script>
+let currentPatientId = "";
+
+async function fetchPatient() {
+  const id = healthCardId.value;
+  const data = await authFetch("/doctor/patient/" + id);
+
+  currentPatientId = id;
+
+  patientSection.classList.remove("hidden");
+
+  patientInfo.innerHTML = `
+    <p><strong>Name:</strong> ${data.patient.fullName}</p>
+    <p><strong>Health Card:</strong> ${data.patient.healthCardId}</p>
+    <p><strong>Blood Group:</strong> ${data.patient.bloodGroup || "-"}</p>
+  `;
+
+  history.innerHTML = data.history.map(r => `
+    <div class="border p-3 mb-3">
+      <p><strong>Date:</strong> ${new Date(r.visitDate).toLocaleDateString()}</p>
+      <p><strong>Diagnosis:</strong> ${r.diagnosis}</p>
+      <p><strong>Notes:</strong> ${r.notes || "-"}</p>
+      <p><strong>Treatments:</strong> ${r.treatments.join(", ")}</p>
+    </div>
+  `).join("");
+}
+
+async function addVisit() {
+  await authFetch("/doctor/visit", {
+    method: "POST",
+    body: JSON.stringify({
+      healthCardId: currentPatientId,
+      diagnosis: diagnosis.value,
+      notes: notes.value,
+      treatments: treatments.value.split(",").map(t => t.trim())
+    })
+  });
+
+  alert("Visit added");
+  fetchPatient();
+}
+</script>
+
+</body>
+</html>
