@@ -22,7 +22,7 @@ const clientPublicPath = path.resolve(__dirname, "../client/public");
 
 app.set("trust proxy", 1);
 app.use(express.json());
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.static(clientPublicPath));
 
