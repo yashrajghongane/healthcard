@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patient Dashboard | HealthCard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen overflow-y-auto">
+    
+    <div class="fixed -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none -z-10"></div>
+    <div class="fixed top-1/2 -left-20 h-96 w-96 rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10"></div>
+
+    <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-bold">HC</div>
+          <div>
+            <p class="text-lg font-semibold tracking-tight">HealthCard</p>
+            <p class="text-xs text-slate-400">Patient Portal</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:block text-right pr-4 border-r border-white/10">
+            <p class="text-sm font-medium text-white" id="headerName">Loading...</p>
+            <p class="text-xs text-slate-400">Patient</p>
+          </div>
+          <button onclick="logout()" class="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-200 hover:border-red-400 hover:text-red-400 transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-7xl px-6 py-8">
+      
+      <div class="mb-8">
+        <h1 class="text-2xl md:text-3xl font-semibold text-white">My Health Identity</h1>
+        <p class="text-slate-400 mt-1">Present your QR code to your doctor for instant access to your records.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <div class="lg:col-span-5 space-y-6">
+          
+          <div class="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-900/40 via-slate-900 to-slate-900 p-8 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full blur-2xl"></div>
+            
+            <div class="flex justify-between items-start mb-8 relative z-10">
+              <div>
+                <p class="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-1">Digital Medical ID</p>
+                <h2 class="text-2xl font-bold text-white" id="cardName">--</h2>
+                <p class="text-sm font-mono text-slate-400 mt-1" id="cardIdDisplay">ID: --</p>
+              </div>
+              
+              <div class="bg-white p-2.5 rounded-xl shadow-lg" id="qrcode-container">
+                <div id="qrcode"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 relative z-10 border-t border-white/10 pt-6">
+              <div>
+                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Blood Group</p>
+                <p class="text-lg font-bold text-red-400" id="cardBlood">--</p>
+              </div>
+              <div>
+                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Date of Birth</p>
+                <p class="text-lg font-medium text-white" id="cardDob">--</p>
+              </div>
+              <div class="col-span-2 mt-2 rounded-xl bg-slate-950/50 border border-white/5 p-3">
+                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Known Allergies</p>
+                <p class="text-sm font-medium text-amber-300" id="cardAllergies">--</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+            <h3 class="text-sm font-semibold text-white mb-4">Card Status</h3>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <div class="flex items-center gap-3">
+                <div class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="text-sm text-emerald-200">Active & Syncing</span>
+              </div>
+              <span class="text-xs text-slate-400">Encrypted</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="lg:col-span-7">
+          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6 md:p-8 h-full">
+            <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+              <h2 class="text-xl font-semibold text-white">Visit History</h2>
+              <span class="text-xs font-medium bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-white/10">Timestamped</span>
+            </div>
+
+            <div class="relative border-l border-slate-700 ml-3 space-y-8" id="timelineContainer">
+              <p class="text-sm text-slate-400 pl-6 italic">Loading medical records...</p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <script>
+      // 1. Mock Data (This simulates what your Express API will return)
+      const mockPatientData = {
+        cardId: "HC-8472-9910",
+        name: "Aarav Sharma",
+        dob: "14 May 1992",
+        bloodGroup: "O+",
+        allergies: "Penicillin, Peanuts",
+        history: [
+          {
+            date: "12 Feb 2026",
+            time: "10:30 AM",
+            doctor: "Dr. Mehta",
+            clinic: "City Care Clinic",
+            notes: "Patient reported mild headaches and fatigue. Blood pressure normal (120/80). Prescribed rest and standard multivitamin course."
+          },
+          {
+            date: "05 Nov 2025",
+            time: "02:15 PM",
+            doctor: "Dr. Sarah Jenkins",
+            clinic: "Metro Hospital",
+            notes: "Annual physical checkup. All vitals within normal ranges. Updated tetanus booster shot."
+          },
+          {
+            date: "22 Aug 2025",
+            time: "09:00 AM",
+            doctor: "Dr. Mehta",
+            clinic: "City Care Clinic",
+            notes: "Allergic reaction to unknown food item. Administered antihistamines. Added Peanuts to suspected allergy list."
+          }
+        ]
+      };
+
+      // 2. Initialize Dashboard
+      document.addEventListener("DOMContentLoaded", () => {
+        
+        // Populate Personal Info
+        document.getElementById("headerName").innerText = mockPatientData.name;
+        document.getElementById("cardName").innerText = mockPatientData.name;
+        document.getElementById("cardIdDisplay").innerText = `ID: ${mockPatientData.cardId}`;
+        document.getElementById("cardBlood").innerText = mockPatientData.bloodGroup;
+        document.getElementById("cardDob").innerText = mockPatientData.dob;
+        document.getElementById("cardAllergies").innerText = mockPatientData.allergies;
+
+        // Generate QR Code containing ONLY the Card ID
+        const qrcodeElement = document.getElementById("qrcode");
+        qrcodeElement.innerHTML = ""; // Clear existing
+        new QRCode(qrcodeElement, {
+          text: mockPatientData.cardId,
+          width: 90,
+          height: 90,
+          colorDark: "#020617", // slate-950
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+
+        // Populate Timeline
+        const timelineContainer = document.getElementById("timelineContainer");
+        timelineContainer.innerHTML = ""; // Clear loading text
+
+        mockPatientData.history.forEach((visit, index) => {
+          // Highlight the most recent visit with a green dot, others with slate
+          const dotColor = index === 0 ? "bg-emerald-400 ring-emerald-400/20" : "bg-slate-600 ring-slate-800";
+          const titleColor = index === 0 ? "text-emerald-400" : "text-slate-300";
+
+          const recordHTML = `
+            <div class="relative pl-6 sm:pl-8">
+              <span class="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ${dotColor} ring-4"></span>
+              
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
+                <h3 class="text-sm font-bold ${titleColor}">${visit.date} <span class="text-xs font-normal text-slate-500 ml-2">${visit.time}</span></h3>
+                <span class="text-xs font-medium text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded border border-white/5">${visit.clinic}</span>
+              </div>
+              
+              <p class="text-sm font-medium text-white mb-2">Attending: ${visit.doctor}</p>
+              <div class="rounded-xl bg-slate-950/50 border border-white/5 p-4 text-sm text-slate-300 leading-relaxed">
+                ${visit.notes}
+              </div>
+            </div>
+          `;
+          timelineContainer.innerHTML += recordHTML;
+        });
+      });
+
+      // 3. Logout Function
+      function logout() {
+        window.location.href = 'index.html';
+      }
+    </script>
+  </body>
+</html>
