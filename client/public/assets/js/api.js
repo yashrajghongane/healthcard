@@ -1,5 +1,90 @@
 // Shared data management functions
 
+function getRuntimeConfig() {
+  return {
+    useBackend: Boolean(window.__HC_USE_BACKEND_AUTH__),
+    apiBaseUrl: window.__HC_API_BASE_URL__ || 'http://localhost:5000'
+  };
+}
+
+function getApiUrl(path) {
+  const { apiBaseUrl } = getRuntimeConfig();
+  const base = String(apiBaseUrl || '').replace(/\/$/, '');
+  return `${base}${path}`;
+}
+
+function getAuthToken() {
+  return localStorage.getItem('authToken') || '';
+}
+
+async function apiRequest(path, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  if (options.auth !== false) {
+    const token = getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch(getApiUrl(path), {
+    method: options.method || 'GET',
+    headers,
+    body: typeof options.body === 'undefined' ? undefined : JSON.stringify(options.body)
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  return { response, data };
+}
+
+function formatDateTime(dateLike) {
+  const date = new Date(dateLike || Date.now());
+  const dateOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+  const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+
+  return {
+    date: date.toLocaleDateString('en-GB', dateOptions),
+    time: date.toLocaleTimeString('en-US', timeOptions)
+  };
+}
+
+function mapBackendRecord(record) {
+  const dateTime = formatDateTime(record.visitDate || record.createdAt || Date.now());
+
+  return {
+    diagnosis: record.diagnosis || '',
+    notes: record.notes || '',
+    treatment: Array.isArray(record.treatments) ? record.treatments.join(', ') : (record.treatment || ''),
+    doctor: (record.doctor && record.doctor.fullName) || 'Doctor',
+    clinic: 'HealthCard Clinic',
+    date: dateTime.date,
+    time: dateTime.time
+  };
+}
+
+function mapBackendPatient(patient, history = []) {
+  return {
+    _id: patient.healthCardId || patient.cardId,
+    cardId: patient.healthCardId || patient.cardId,
+    qrCodeId: patient.healthCardId || patient.cardId,
+    name: patient.fullName || patient.name || '',
+    phone: patient.phoneNumber || patient.phone || '',
+    dob: patient.dob ? new Date(patient.dob).toISOString().split('T')[0] : '',
+    bloodGroup: patient.bloodGroup || '',
+    allergies: normalizeAllergies(patient.allergies),
+    history: history.map(mapBackendRecord)
+  };
+}
+
 function normalizeAllergies(allergiesValue) {
   if (Array.isArray(allergiesValue)) {
     return allergiesValue
@@ -69,7 +154,21 @@ function generateCardId() {
 }
 
 // Get patient data by card ID
-function getPatientByCardId(cardId) {
+async function getPatientByCardId(cardId) {
+  const { useBackend } = getRuntimeConfig();
+  if (useBackend) {
+    try {
+      const { response, data } = await apiRequest(`/api/doctor/patient/${encodeURIComponent(cardId)}`);
+      if (!response.ok || !data || !data.patient) {
+        return null;
+      }
+
+      return mapBackendPatient(data.patient, data.history || []);
+    } catch {
+      return null;
+    }
+  }
+
   const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
   if (patientsDB[cardId]) {
     return patientsDB[cardId];
@@ -79,8 +178,64 @@ function getPatientByCardId(cardId) {
   return allPatients.find((patient) => patient.qrCodeId === cardId) || null;
 }
 
+async function getMyPatientProfile() {
+  const { useBackend } = getRuntimeConfig();
+  if (!useBackend) {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !currentUser.cardId) {
+      return null;
+    }
+    return getPatientByCardId(currentUser.cardId);
+  }
+
+  try {
+    const { response, data } = await apiRequest('/api/patient/me');
+    if (!response.ok || !data) {
+      return null;
+    }
+
+    return mapBackendPatient(data, data.history || []);
+  } catch {
+    return null;
+  }
+}
+
 // Update patient data
-function updatePatientData(cardId, data) {
+async function updatePatientData(cardId, data) {
+  const { useBackend } = getRuntimeConfig();
+  if (useBackend) {
+    try {
+      const payload = {
+        ...data,
+        allergies: Object.prototype.hasOwnProperty.call(data || {}, 'allergies')
+          ? normalizeAllergies(data.allergies)
+          : undefined
+      };
+
+      const { response, data: responseData } = await apiRequest(`/api/doctor/patient/${encodeURIComponent(cardId)}`, {
+        method: 'PATCH',
+        body: payload
+      });
+
+      if (!response.ok || !responseData || !responseData.patient) {
+        return {
+          success: false,
+          message: (responseData && responseData.message) || 'Failed to update patient profile'
+        };
+      }
+
+      return {
+        success: true,
+        patient: mapBackendPatient(responseData.patient, [])
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to update patient profile'
+      };
+    }
+  }
+
   const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
   
   if (!patientsDB[cardId]) {
@@ -116,7 +271,41 @@ function updatePatientData(cardId, data) {
 }
 
 // Add medical record to patient history
-function addMedicalRecord(cardId, record) {
+async function addMedicalRecord(cardId, record) {
+  const { useBackend } = getRuntimeConfig();
+  if (useBackend) {
+    try {
+      const treatments = normalizeAllergies(record.treatment || record.treatement || record.treatments || '');
+      const { response, data } = await apiRequest('/api/doctor/visit', {
+        method: 'POST',
+        body: {
+          healthCardId: cardId,
+          diagnosis: String(record.diagnosis || '').trim(),
+          notes: String(record.notes || '').trim(),
+          treatments
+        }
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: (data && data.message) || 'Failed to add medical record'
+        };
+      }
+
+      const refreshedPatient = await getPatientByCardId(cardId);
+      return {
+        success: true,
+        history: refreshedPatient ? refreshedPatient.history : [mapBackendRecord(data)]
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to add medical record'
+      };
+    }
+  }
+
   const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
   
   if (!patientsDB[cardId]) {
@@ -178,7 +367,7 @@ function addMedicalRecord(cardId, record) {
 }
 
 // Get all patients (for doctor view)
-function getAllPatients() {
+async function getAllPatients() {
   const patientsDB = JSON.parse(localStorage.getItem('patientsDB')) || {};
   return Object.values(patientsDB);
 }

@@ -115,15 +115,15 @@ function setupSearchForm() {
   const searchForm = document.getElementById('searchForm');
   if (!searchForm) return;
 
-  searchForm.addEventListener('submit', function(e) {
+  searchForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     const query = document.getElementById('searchInput').value.trim();
-    searchPatient(query);
+    await searchPatient(query);
   });
 }
 
 // Search for patient by card ID
-function searchPatient(cardId) {
+async function searchPatient(cardId) {
   const workspace = document.getElementById('patientWorkspace');
   const errorMsg = document.getElementById('errorMessage');
   
@@ -131,7 +131,7 @@ function searchPatient(cardId) {
     return;
   }
 
-  const patient = getPatientByCardId(cardId);
+  const patient = await getPatientByCardId(cardId);
 
   if (patient) {
     currentPatientId = patient.cardId || cardId;
@@ -234,7 +234,7 @@ function setupAddRecordForm() {
   const addRecordForm = document.getElementById('addRecordForm');
   if (!addRecordForm) return;
 
-  addRecordForm.addEventListener('submit', function(e) {
+  addRecordForm.addEventListener('submit', async function(e) {
     e.preventDefault();
 
     const diagnosisInput = document.getElementById('medicalDiagnosis');
@@ -258,7 +258,7 @@ function setupAddRecordForm() {
       return;
     }
 
-    const patient = getPatientByCardId(currentPatientId);
+    const patient = await getPatientByCardId(currentPatientId);
     if (!patient) {
       alert('Patient not found. Please search again.');
       return;
@@ -273,7 +273,7 @@ function setupAddRecordForm() {
         phone: patient.phone || ''
       };
 
-      const profileResult = updatePatientData(currentPatientId, profileUpdate);
+      const profileResult = await updatePatientData(currentPatientId, profileUpdate);
       if (!profileResult.success) {
         alert(profileResult.message || 'Failed to update patient profile.');
         return;
@@ -290,17 +290,17 @@ function setupAddRecordForm() {
       // Frontend-only mode: patient profile is stored in localStorage
     }
 
-    const refreshedPatient = getPatientByCardId(currentPatientId);
+    const refreshedPatient = await getPatientByCardId(currentPatientId);
     if (!refreshedPatient || hasIncompleteProfile(refreshedPatient)) {
       openProfileModal(refreshedPatient || patient);
       return;
     }
 
-    createRecord({ diagnosis, notes, treatment });
+    await createRecord({ diagnosis, notes, treatment });
   });
 }
 
-function createRecord({ diagnosis, notes, treatment }) {
+async function createRecord({ diagnosis, notes, treatment }) {
   if (!currentPatientId) {
     alert('Select a patient first.');
     return;
@@ -319,14 +319,14 @@ function createRecord({ diagnosis, notes, treatment }) {
   };
 
   // Add record to patient history
-  const result = addMedicalRecord(currentPatientId, newRecord);
+  const result = await addMedicalRecord(currentPatientId, newRecord);
 
   if (result.success) {
     // Re-render the timeline
     renderTimeline(result.history);
 
     // Refresh patient summary
-    const updatedPatient = getPatientByCardId(currentPatientId);
+    const updatedPatient = await getPatientByCardId(currentPatientId);
     const patientAllergies = document.getElementById('patientAllergies');
     if (patientAllergies && updatedPatient) {
       patientAllergies.innerText = formatAllergiesForDisplay(updatedPatient.allergies);
@@ -358,7 +358,7 @@ function setupProfileModal() {
 
   if (!profileForm) return;
 
-  profileForm.addEventListener('submit', function(e) {
+  profileForm.addEventListener('submit', async function(e) {
     e.preventDefault();
 
     if (!currentPatientId) {
@@ -381,7 +381,7 @@ function setupProfileModal() {
       return;
     }
 
-    const updateResult = updatePatientData(currentPatientId, {
+    const updateResult = await updatePatientData(currentPatientId, {
       dob,
       bloodGroup,
       allergies,
@@ -416,7 +416,7 @@ function setupProfileModal() {
     const treatment = treatmentInput ? treatmentInput.value.trim() : '';
 
     if (diagnosis) {
-      createRecord({ diagnosis, notes, treatment });
+      await createRecord({ diagnosis, notes, treatment });
     }
   });
 }

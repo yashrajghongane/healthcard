@@ -41,11 +41,16 @@ healthcard/
     ├── package.json
     ├── .env
     ├── config/db.js                 # MongoDB connection
-    ├── models/User.js               # User schema
-    ├── controllers/authController.js # Auth logic
-    ├── middleware/auth.js            # JWT middleware
-    ├── routes/auth.js                # API routes
-    └── README.md                     # Server documentation
+  ├── models/
+  │   ├── User.js
+  │   ├── Doctor.js
+  │   ├── Patient.js
+  │   └── MedicalRecord.js
+  ├── middleware/authMiddleware.js
+  └── routes/
+    ├── authRoutes.js
+    ├── doctorRoutes.js
+    └── patientRoutes.js
 ```
 
 ---
@@ -119,7 +124,7 @@ npx http-server client/public
 
 ## API Endpoints Reference
 
-Frontend-only mode: no API calls are required.
+Default mode is frontend-only (`__HC_USE_BACKEND_AUTH__ = false`).
 
 ### Enable Backend Auth (Doctor + Patient)
 
@@ -149,7 +154,7 @@ Expected registration payload example (doctor):
 
 Expected response fields used by frontend:
 - `token`
-- `user.role`
+- `role` (or `user.role` if your backend returns user object)
 
 Direct API test (backend):
 
@@ -167,6 +172,14 @@ curl -X POST http://localhost:5000/api/auth/register \
 After successful login/register, frontend stores:
 - `authToken` (if returned)
 - `currentUser`
+
+### Backend Run (separate)
+
+```bash
+cd server
+npm install
+npm run dev
+```
 
 ---
 
@@ -260,8 +273,7 @@ Not required for frontend-only mode.
 ## Documentation Files
 
 1. **CODEBASE_EXPLANATION.md** - Complete codebase documentation
-2. **server/README.md** - Backend API documentation (separate)
-3. This file - Quick start guide
+2. This file - Quick start guide
 
 ---
 

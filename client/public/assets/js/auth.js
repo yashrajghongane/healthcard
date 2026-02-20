@@ -20,6 +20,31 @@ function normalizeBackendUser(user) {
   };
 }
 
+function buildUserFromBackendResponse(data, fallback = {}) {
+  const explicitUser = normalizeBackendUser(data.user || null);
+  if (explicitUser) {
+    return explicitUser;
+  }
+
+  return {
+    email: String(fallback.email || '').trim().toLowerCase(),
+    role: data.role || fallback.role || 'patient',
+    fullname: data.fullname || data.fullName || fallback.fullname || fallback.fullName || (data.role === 'doctor' ? 'Doctor' : 'Patient')
+  };
+}
+
+function isBackendSuccessResponse(response, data) {
+  if (!response.ok) {
+    return false;
+  }
+
+  if (typeof data.success === 'boolean') {
+    return data.success;
+  }
+
+  return Boolean(data.token || data.role || data.user);
+}
+
 function saveSessionUser(user, token) {
   if (token) {
     localStorage.setItem('authToken', token);
@@ -112,14 +137,14 @@ async function registerAccount(userData) {
     });
 
     const data = await response.json();
-    if (!response.ok || !data.success) {
+    if (!isBackendSuccessResponse(response, data)) {
       return {
         success: false,
         message: data.message || 'Registration failed'
       };
     }
 
-    const user = normalizeBackendUser(data.user);
+    const user = buildUserFromBackendResponse(data, userData);
     saveSessionUser(user, data.token || null);
 
     return { success: true, user, token: data.token || null };
@@ -151,14 +176,14 @@ async function loginAccount(email, password) {
     });
 
     const data = await response.json();
-    if (!response.ok || !data.success) {
+    if (!isBackendSuccessResponse(response, data)) {
       return {
         success: false,
         message: data.message || 'Login failed'
       };
     }
 
-    const user = normalizeBackendUser(data.user);
+    const user = buildUserFromBackendResponse(data, { email });
     saveSessionUser(user, data.token || null);
 
     return { success: true, user, token: data.token || null };

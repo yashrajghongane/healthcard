@@ -1,7 +1,7 @@
 // QR Generation & Patient Profile logic
 
 // Initialize patient dashboard
-function initPatientDashboard() {
+async function initPatientDashboard() {
   // Check authentication
   requireAuth();
   
@@ -15,7 +15,7 @@ function initPatientDashboard() {
   setupResetDemoButton();
 
   // Get latest patient data from patientsDB
-  const patientData = getPatientByCardId(currentUser.cardId);
+  const patientData = await getMyPatientProfile();
 
   // Populate header
   const headerName = document.getElementById('headerName');
