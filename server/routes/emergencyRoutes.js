@@ -1,14 +1,19 @@
 import express from "express";
 import Patient from "../models/Patient.js";
 import MedicalRecord from "../models/MedicalRecord.js";
+import { isValidHealthCardId, normalizeHealthCardId } from "../utils/validation.js";
 
 const router = express.Router();
 
 router.get("/emergency/scan/:qrCodeId", async (req, res) => {
   try {
-    const qrCodeId = String(req.params.qrCodeId || "").trim();
+    const qrCodeId = normalizeHealthCardId(req.params.qrCodeId);
     if (!qrCodeId) {
       return res.status(400).json({ message: "QR code is required" });
+    }
+
+    if (!isValidHealthCardId(qrCodeId)) {
+      return res.status(400).json({ message: "QR/Card ID must be in HC-1234-5678 format" });
     }
 
     const patient = await Patient.findOne({

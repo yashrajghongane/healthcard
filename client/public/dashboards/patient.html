@@ -7,13 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen overflow-y-auto">
+  <body class="bg-slate-950 text-slate-100 min-h-screen overflow-y-auto antialiased selection:bg-emerald-400/30">
     
     <div class="fixed -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none -z-10"></div>
     <div class="fixed top-1/2 -left-20 h-96 w-96 rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10"></div>
 
     <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-4">
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-bold">HC</div>
           <div>
@@ -33,57 +33,67 @@
       </div>
     </header>
 
-    <main class="mx-auto w-full max-w-7xl px-6 py-8">
+    <main class="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
       
       <div class="mb-8">
         <h1 class="text-2xl md:text-3xl font-semibold text-white">My Health Identity</h1>
         <p class="text-slate-400 mt-1">Present your QR code to your doctor for instant access to your records.</p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         
         <div class="lg:col-span-5 space-y-6">
           
-          <div class="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-900/40 via-slate-900 to-slate-900 p-8 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full blur-2xl"></div>
-            
-            <div class="flex justify-between items-start mb-8 relative z-10">
+          <div class="relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-900/45 via-slate-900 to-slate-950 p-5 sm:p-8 shadow-[0_0_32px_rgba(16,185,129,0.14)] transition-all duration-300 hover:border-emerald-300/45">
+            <div class="absolute -top-10 -right-10 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl"></div>
+            <div class="absolute -bottom-14 -left-10 h-40 w-40 rounded-full bg-indigo-400/10 blur-3xl"></div>
+
+            <div class="relative z-10 flex items-start justify-between gap-3 sm:gap-4">
               <div>
-                <p class="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-1">Digital Medical ID</p>
-                <h2 class="text-2xl font-bold text-white" id="cardName">--</h2>
-                <p class="text-sm font-mono text-slate-400 mt-1" id="cardIdDisplay">ID: --</p>
+                <p class="text-[11px] uppercase tracking-[0.22em] text-emerald-300 font-semibold">HealthCard • Secure Medical ID</p>
+                <h2 class="mt-2 text-xl sm:text-2xl font-bold text-white leading-tight" id="cardName">--</h2>
+                <p class="mt-1 text-xs sm:text-sm font-mono text-emerald-200/80" id="cardIdDisplay">ID: --</p>
               </div>
-              
-              <div class="bg-white p-2.5 rounded-xl shadow-lg" id="qrcode-container">
+
+              <div class="rounded-2xl border border-white/20 bg-white p-2 sm:p-2.5 shadow-xl shrink-0" id="qrcode-container">
                 <div id="qrcode"></div>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 relative z-10 border-t border-white/10 pt-6">
-              <div>
-                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Blood Group</p>
-                <p class="text-lg font-bold text-red-400" id="cardBlood">--</p>
+            <div class="relative z-10 mt-6 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+              <span class="h-2 w-2 rounded-full bg-emerald-300"></span>
+              Active Health Identity • Present QR during consultation
+            </div>
+
+            <div class="relative z-10 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 border-t border-white/15 pt-6">
+              <div class="rounded-xl border border-white/10 bg-slate-950/35 p-3 transition duration-200 hover:border-white/20">
+                <p class="text-[11px] text-slate-400 uppercase tracking-wider">Blood Group</p>
+                <p class="mt-1 text-lg font-bold text-red-400" id="cardBlood">--</p>
               </div>
-              <div>
-                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Date of Birth</p>
-                <p class="text-lg font-medium text-white" id="cardDob">--</p>
+              <div class="rounded-xl border border-white/10 bg-slate-950/35 p-3 transition duration-200 hover:border-white/20">
+                <p class="text-[11px] text-slate-400 uppercase tracking-wider">Date of Birth</p>
+                <p class="mt-1 text-base font-semibold text-white" id="cardDob">--</p>
               </div>
-              <div>
-                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Phone</p>
-                <p class="text-sm font-medium text-white" id="cardPhone">--</p>
+              <div class="rounded-xl border border-white/10 bg-slate-950/35 p-3 transition duration-200 hover:border-white/20">
+                <p class="text-[11px] text-slate-400 uppercase tracking-wider">Phone</p>
+                <p class="mt-1 text-sm font-medium text-white" id="cardPhone">--</p>
               </div>
-              <div>
-                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Relative Phone</p>
-                <p class="text-sm font-medium text-white" id="cardRelativePhone">--</p>
+              <div class="rounded-xl border border-white/10 bg-slate-950/35 p-3 transition duration-200 hover:border-white/20">
+                <p class="text-[11px] text-slate-400 uppercase tracking-wider">Relative Phone</p>
+                <p class="mt-1 text-sm font-medium text-white" id="cardRelativePhone">--</p>
               </div>
-              <div class="col-span-2 mt-2 rounded-xl bg-slate-950/50 border border-white/5 p-3">
-                <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Known Allergies</p>
-                <p class="text-sm font-medium text-amber-300" id="cardAllergies">--</p>
+              <div class="col-span-2 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3">
+                <p class="text-[11px] text-amber-200/80 uppercase tracking-wider">Known Allergies</p>
+                <p class="mt-1 text-sm font-medium text-amber-200" id="cardAllergies">--</p>
+              </div>
+              <div class="col-span-2 rounded-xl border border-white/10 bg-slate-950/35 p-3 transition duration-200 hover:border-white/20">
+                <p class="text-[11px] text-slate-400 uppercase tracking-wider">Address</p>
+                <p class="mt-1 text-sm font-medium text-white" id="cardAddress">--</p>
               </div>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+          <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 sm:p-6 transition-all duration-300 hover:border-white/20">
             <h3 class="text-sm font-semibold text-white mb-4">Card Status</h3>
             <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
               <div class="flex items-center gap-3">
@@ -94,10 +104,32 @@
             </div>
           </div>
 
+          <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 sm:p-6 transition-all duration-300 hover:border-white/20">
+            <h3 class="text-sm font-semibold text-white mb-4">My Profile</h3>
+            <form id="patientProfileForm" class="space-y-3">
+              <textarea id="patientAddressInput" rows="2" maxlength="250" placeholder="Address" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition resize-none"></textarea>
+              <input id="patientPhoneInput" type="tel" inputmode="tel" maxlength="16" pattern="^\+?[1-9]\d{9,14}$" placeholder="Phone" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+              <input id="patientRelativePhoneInput" type="tel" inputmode="tel" maxlength="16" pattern="^\+?[1-9]\d{9,14}$" placeholder="Relative Phone" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+              <button type="submit" class="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Save Patient Profile</button>
+            </form>
+            <p id="patientProfileStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
+
+            <div class="mt-5 border-t border-white/10 pt-4">
+              <h4 class="text-sm font-semibold text-white mb-3">Change Password</h4>
+              <form id="patientPasswordForm" class="space-y-3">
+                <input id="patientCurrentPassword" type="password" autocomplete="current-password" minlength="6" maxlength="72" required placeholder="Current Password" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                <input id="patientNewPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="New Password" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                <input id="patientConfirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="Confirm New Password" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                <button type="submit" class="w-full rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20 transition">Update Password</button>
+              </form>
+              <p id="patientPasswordStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
+            </div>
+          </div>
+
         </div>
 
         <div class="lg:col-span-7">
-          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6 md:p-8 h-full">
+          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-5 md:p-8 h-full transition-all duration-300 hover:border-white/20">
             <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
               <h2 class="text-xl font-semibold text-white">Visit History</h2>
               <span class="text-xs font-medium bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-white/10">Timestamped</span>

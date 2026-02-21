@@ -34,6 +34,7 @@ async function initPatientDashboard() {
   const cardPhone = document.getElementById('cardPhone');
   const cardRelativePhone = document.getElementById('cardRelativePhone');
   const cardAllergies = document.getElementById('cardAllergies');
+  const cardAddress = document.getElementById('cardAddress');
 
   if (cardName) cardName.innerText = patientData.name;
   if (cardIdDisplay) cardIdDisplay.innerText = `ID: ${patientData.cardId}`;
@@ -41,6 +42,7 @@ async function initPatientDashboard() {
   if (cardDob) cardDob.innerText = patientData.dob || 'Not set';
   if (cardPhone) cardPhone.innerText = patientData.phone || 'Not set';
   if (cardRelativePhone) cardRelativePhone.innerText = patientData.relativePhone || 'Not set';
+  if (cardAddress) cardAddress.innerText = patientData.address || 'Not set';
   if (cardAllergies) {
     if (Array.isArray(patientData.allergies)) {
       cardAllergies.innerText = patientData.allergies.length ? patientData.allergies.join(', ') : 'Not set';
@@ -54,6 +56,8 @@ async function initPatientDashboard() {
 
   // Populate timeline
   populateTimeline(patientData.history || []);
+
+  setupPatientProfileForm(patientData);
 }
 
 function showEmptyProfile(currentUser) {
@@ -64,6 +68,7 @@ function showEmptyProfile(currentUser) {
   const cardPhone = document.getElementById('cardPhone');
   const cardRelativePhone = document.getElementById('cardRelativePhone');
   const cardAllergies = document.getElementById('cardAllergies');
+  const cardAddress = document.getElementById('cardAddress');
 
   if (cardName) cardName.innerText = currentUser.fullname || 'Patient';
   if (cardIdDisplay) cardIdDisplay.innerText = `ID: ${currentUser.cardId || '--'}`;
@@ -72,12 +77,131 @@ function showEmptyProfile(currentUser) {
   if (cardPhone) cardPhone.innerText = 'Not set';
   if (cardRelativePhone) cardRelativePhone.innerText = 'Not set';
   if (cardAllergies) cardAllergies.innerText = 'Not set';
+  if (cardAddress) cardAddress.innerText = 'Not set';
 
   if (currentUser.cardId) {
     generateQRCode(currentUser.cardId);
   }
 
   populateTimeline([]);
+
+  setupPatientProfileForm({ address: '', phone: '', relativePhone: '' });
+}
+
+function setPatientProfileStatus(message, isError = false) {
+  const status = document.getElementById('patientProfileStatus');
+  if (!status) return;
+
+  status.classList.remove('hidden');
+  status.className = `mt-3 rounded-lg border px-3 py-2 text-xs ${isError ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`;
+  status.innerText = message;
+}
+
+function setPatientPasswordStatus(message, isError = false) {
+  const status = document.getElementById('patientPasswordStatus');
+  if (!status) return;
+
+  status.classList.remove('hidden');
+  status.className = `hidden mt-3 rounded-lg border px-3 py-2 text-xs ${isError ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`;
+  status.classList.remove('hidden');
+  status.innerText = message;
+}
+
+function initPatientPasswordForm() {
+  const form = document.getElementById('patientPasswordForm');
+  if (!form) return;
+
+  const currentInput = document.getElementById('patientCurrentPassword');
+  const newInput = document.getElementById('patientNewPassword');
+  const confirmInput = document.getElementById('patientConfirmPassword');
+
+  if (form.dataset.passwordBound === 'true') {
+    return;
+  }
+
+  form.dataset.passwordBound = 'true';
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    if (!form.reportValidity()) {
+      return;
+    }
+
+    const currentPassword = currentInput ? String(currentInput.value || '').trim() : '';
+    const newPassword = newInput ? String(newInput.value || '').trim() : '';
+    const confirmPassword = confirmInput ? String(confirmInput.value || '').trim() : '';
+
+    if (newPassword !== confirmPassword) {
+      setPatientPasswordStatus('New password and confirm password must match.', true);
+      return;
+    }
+
+    const result = await changePasswordAccount(currentPassword, newPassword);
+    if (!result.success) {
+      setPatientPasswordStatus(result.message || 'Failed to change password.', true);
+      return;
+    }
+
+    if (currentInput) currentInput.value = '';
+    if (newInput) newInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+    setPatientPasswordStatus('Password updated successfully.');
+  });
+}
+
+function setupPatientProfileForm(patientData) {
+  const form = document.getElementById('patientProfileForm');
+  if (!form) return;
+
+  const addressInput = document.getElementById('patientAddressInput');
+  const phoneInput = document.getElementById('patientPhoneInput');
+  const relativePhoneInput = document.getElementById('patientRelativePhoneInput');
+
+  if (addressInput) addressInput.value = patientData.address || '';
+  if (phoneInput) phoneInput.value = patientData.phone || '';
+  if (relativePhoneInput) relativePhoneInput.value = patientData.relativePhone || '';
+
+  if (form.dataset.bound === 'true') {
+    return;
+  }
+
+  form.dataset.bound = 'true';
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    if (!form.reportValidity()) {
+      return;
+    }
+
+    const payload = {
+      address: addressInput ? addressInput.value.trim() : '',
+      phone: phoneInput ? phoneInput.value.trim() : '',
+      relativePhone: relativePhoneInput ? relativePhoneInput.value.trim() : ''
+    };
+
+    const result = await updateMyPatientProfile(payload);
+    if (!result.success) {
+      setPatientProfileStatus(result.message || 'Failed to update patient profile', true);
+      return;
+    }
+
+    const updatedPatient = result.patient || {};
+    const cardPhone = document.getElementById('cardPhone');
+    const cardRelativePhone = document.getElementById('cardRelativePhone');
+    const cardAddress = document.getElementById('cardAddress');
+
+    if (cardPhone) cardPhone.innerText = updatedPatient.phone || payload.phone || 'Not set';
+    if (cardRelativePhone) cardRelativePhone.innerText = updatedPatient.relativePhone || payload.relativePhone || 'Not set';
+    if (cardAddress) cardAddress.innerText = updatedPatient.address || payload.address || 'Not set';
+
+    if (phoneInput) phoneInput.value = updatedPatient.phone || payload.phone || '';
+    if (relativePhoneInput) relativePhoneInput.value = updatedPatient.relativePhone || payload.relativePhone || '';
+    if (addressInput) addressInput.value = updatedPatient.address || payload.address || '';
+
+    setPatientProfileStatus('Patient profile updated successfully.');
+  });
+
+  initPatientPasswordForm();
 }
 
 // Generate QR Code
@@ -86,12 +210,13 @@ function generateQRCode(cardId) {
   if (!qrcodeElement) return;
 
   qrcodeElement.innerHTML = ''; // Clear existing
+  const qrSize = window.innerWidth < 640 ? 104 : 90;
   
   if (typeof QRCode !== 'undefined') {
     new QRCode(qrcodeElement, {
       text: cardId,
-      width: 90,
-      height: 90,
+      width: qrSize,
+      height: qrSize,
       colorDark: '#020617', // slate-950
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.H

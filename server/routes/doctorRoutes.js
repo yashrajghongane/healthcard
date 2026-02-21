@@ -5,6 +5,21 @@ import Patient from "../models/Patient.js";
 import Doctor from "../models/Doctor.js";
 import MedicalRecord from "../models/MedicalRecord.js";
 import User from "../models/User.js";
+import {
+  getValidationErrorMessage,
+  isValidBloodGroup,
+  isValidDob,
+  isValidFullName,
+  isValidHealthCardId,
+  isValidOtp,
+  isValidPhone,
+  normalizeAllergies,
+  normalizeBloodGroup,
+  normalizeFullName,
+  normalizeHealthCardId,
+  normalizePhone,
+  sanitizeText
+} from "../utils/validation.js";
 
 const router = express.Router();
 const VISIT_OTP_LENGTH = 6;
@@ -17,6 +32,64 @@ const createVisitOtpCode = () => {
 };
 
 const hasMakeConfig = () => Boolean(process.env.MAKE_WEBHOOK_URL);
+
+router.get("/me", protect, authorize("doctor"), async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ user: req.user._id });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found" });
+    }
+
+    return res.json({
+      fullName: doctor.fullName,
+      specialization: doctor.specialization || "",
+      hospitalName: doctor.hospitalName || ""
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to fetch doctor profile" });
+  }
+});
+
+router.patch("/me", protect, authorize("doctor"), async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ user: req.user._id });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found" });
+    }
+
+    const { fullName, specialization, hospitalName } = req.body || {};
+
+    if (typeof fullName !== "undefined") {
+      const normalizedName = normalizeFullName(fullName);
+      if (!normalizedName || !isValidFullName(normalizedName)) {
+        return res.status(400).json({ message: "Enter a valid full name" });
+      }
+      doctor.fullName = normalizedName;
+    }
+
+    if (typeof specialization !== "undefined") {
+      doctor.specialization = sanitizeText(specialization, 120);
+    }
+
+    if (typeof hospitalName !== "undefined") {
+      doctor.hospitalName = sanitizeText(hospitalName, 160);
+    }
+
+    await doctor.save();
+
+    return res.json({
+      profile: {
+        fullName: doctor.fullName,
+        specialization: doctor.specialization || "",
+        hospitalName: doctor.hospitalName || ""
+      }
+    });
+  } catch (error) {
+    const message = getValidationErrorMessage(error, "Failed to update doctor profile");
+    const statusCode = error?.name === "ValidationError" ? 400 : 500;
+    return res.status(statusCode).json({ message });
+  }
+});
 
 const sendVisitOtpEmail = async ({ email, code, healthCardId }) => {
   if (!hasMakeConfig()) {
@@ -51,9 +124,9 @@ const sendVisitOtpEmail = async ({ email, code, healthCardId }) => {
 
 router.post("/visit/request-otp", protect, authorize("doctor"), async (req, res) => {
   try {
-    const healthCardId = String(req.body?.healthCardId || "").trim();
-    if (!healthCardId) {
-      return res.status(400).json({ success: false, message: "healthCardId is required" });
+    const healthCardId = normalizeHealthCardId(req.body?.healthCardId);
+    if (!healthCardId || !isValidHealthCardId(healthCardId)) {
+      return res.status(400).json({ success: false, message: "healthCardId must be in HC-1234-5678 format" });
     }
 
     const patient = await Patient.findOne({ healthCardId });
@@ -102,11 +175,15 @@ router.post("/visit/request-otp", protect, authorize("doctor"), async (req, res)
 
 router.post("/visit/verify-otp", protect, authorize("doctor"), async (req, res) => {
   try {
-    const healthCardId = String(req.body?.healthCardId || "").trim();
+    const healthCardId = normalizeHealthCardId(req.body?.healthCardId);
     const otp = String(req.body?.otp || "").trim();
 
     if (!healthCardId || !otp) {
       return res.status(400).json({ success: false, message: "healthCardId and otp are required" });
+    }
+
+    if (!isValidHealthCardId(healthCardId) || !isValidOtp(otp)) {
+      return res.status(400).json({ success: false, message: "Invalid healthCardId or otp format" });
     }
 
     const patient = await Patient.findOne({ healthCardId });
@@ -140,8 +217,20 @@ router.post("/visit/verify-otp", protect, authorize("doctor"), async (req, res) 
 router.post("/visit", protect, authorize("doctor"), async (req, res) => {
   try {
     const { healthCardId, diagnosis, notes, treatments } = req.body;
+    const normalizedCardId = normalizeHealthCardId(healthCardId);
+    const normalizedDiagnosis = sanitizeText(diagnosis, 500);
+    const normalizedNotes = sanitizeText(notes, 2000);
+    const normalizedTreatments = normalizeAllergies(treatments).slice(0, 20);
 
-    const patient = await Patient.findOne({ healthCardId });
+    if (!isValidHealthCardId(normalizedCardId)) {
+      return res.status(400).json({ message: "healthCardId must be in HC-1234-5678 format" });
+    }
+
+    if (!normalizedDiagnosis || normalizedDiagnosis.length < 2) {
+      return res.status(400).json({ message: "Diagnosis is required and must be at least 2 characters" });
+    }
+
+    const patient = await Patient.findOne({ healthCardId: normalizedCardId });
     if (!patient) return res.status(404).json({ message: "Patient not found" });
 
     if (
@@ -160,9 +249,9 @@ router.post("/visit", protect, authorize("doctor"), async (req, res) => {
     const record = await MedicalRecord.create({
       patient: patient._id,
       doctor: doctor._id,
-      diagnosis,
-      notes,
-      treatments
+      diagnosis: normalizedDiagnosis,
+      notes: normalizedNotes,
+      treatments: normalizedTreatments
     });
 
     patient.doctorUpdateOtpCode = null;
@@ -173,47 +262,60 @@ router.post("/visit", protect, authorize("doctor"), async (req, res) => {
 
     res.status(201).json(record);
   } catch (error) {
-    res.status(500).json({ message: error.message || "Failed to add medical record" });
+    const message = getValidationErrorMessage(error, "Failed to add medical record");
+    const statusCode = error?.name === "ValidationError" ? 400 : 500;
+    res.status(statusCode).json({ message });
   }
 });
 
 router.patch("/patient/:healthCardId", protect, authorize("doctor"), async (req, res) => {
   try {
-    const { healthCardId } = req.params;
-    const { dob, bloodGroup, allergies, phone, phoneNumber, relativePhone, relativePhoneNumber } = req.body;
+    const healthCardId = normalizeHealthCardId(req.params.healthCardId);
+    const { dob, bloodGroup, allergies, phone, phoneNumber, relativePhone, relativePhoneNumber, address } = req.body;
+
+    if (!isValidHealthCardId(healthCardId)) {
+      return res.status(400).json({ message: "healthCardId must be in HC-1234-5678 format" });
+    }
 
     const patient = await Patient.findOne({ healthCardId });
     if (!patient) return res.status(404).json({ message: "Patient not found" });
 
     if (typeof dob !== "undefined") {
+      if (!isValidDob(dob)) {
+        return res.status(400).json({ message: "Date of birth must be a valid past date" });
+      }
       patient.dob = dob || null;
     }
 
     if (typeof bloodGroup !== "undefined") {
-      patient.bloodGroup = String(bloodGroup || "").trim();
+      if (!isValidBloodGroup(bloodGroup)) {
+        return res.status(400).json({ message: "Blood group must be one of A+, A-, B+, B-, AB+, AB-, O+, O-" });
+      }
+      patient.bloodGroup = normalizeBloodGroup(bloodGroup);
     }
 
     if (typeof allergies !== "undefined") {
-      if (Array.isArray(allergies)) {
-        patient.allergies = allergies.map((item) => String(item).trim()).filter(Boolean);
-      } else if (typeof allergies === "string") {
-        patient.allergies = allergies
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
-      } else {
-        patient.allergies = [];
-      }
+      patient.allergies = normalizeAllergies(allergies).slice(0, 30);
     }
 
     if (typeof phone !== "undefined" || typeof phoneNumber !== "undefined") {
       const phoneValue = typeof phoneNumber !== "undefined" ? phoneNumber : phone;
-      patient.phoneNumber = String(phoneValue || "").trim();
+      if (!isValidPhone(phoneValue)) {
+        return res.status(400).json({ message: "Phone must contain a valid international format" });
+      }
+      patient.phoneNumber = normalizePhone(phoneValue);
     }
 
     if (typeof relativePhone !== "undefined" || typeof relativePhoneNumber !== "undefined") {
       const relativePhoneValue = typeof relativePhoneNumber !== "undefined" ? relativePhoneNumber : relativePhone;
-      patient.relativePhoneNumber = String(relativePhoneValue || "").trim();
+      if (!isValidPhone(relativePhoneValue)) {
+        return res.status(400).json({ message: "Relative phone must contain a valid international format" });
+      }
+      patient.relativePhoneNumber = normalizePhone(relativePhoneValue);
+    }
+
+    if (typeof address !== "undefined") {
+      patient.address = sanitizeText(address, 250);
     }
 
     await patient.save();
@@ -229,17 +331,25 @@ router.patch("/patient/:healthCardId", protect, authorize("doctor"), async (req,
         bloodGroup: patient.bloodGroup || "",
         allergies: patient.allergies || [],
         phone: patient.phoneNumber || "",
-        relativePhone: patient.relativePhoneNumber || ""
+        relativePhone: patient.relativePhoneNumber || "",
+        address: patient.address || ""
       }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Failed to update patient profile" });
+    const message = getValidationErrorMessage(error, "Failed to update patient profile");
+    const statusCode = error?.name === "ValidationError" ? 400 : 500;
+    res.status(statusCode).json({ message });
   }
 });
 
 router.get("/patient/:healthCardId", protect, authorize("doctor"), async (req, res) => {
   try {
-    const patient = await Patient.findOne({ healthCardId: req.params.healthCardId });
+    const healthCardId = normalizeHealthCardId(req.params.healthCardId);
+    if (!isValidHealthCardId(healthCardId)) {
+      return res.status(400).json({ message: "healthCardId must be in HC-1234-5678 format" });
+    }
+
+    const patient = await Patient.findOne({ healthCardId });
     if (!patient) return res.status(404).json({ message: "Patient not found" });
 
     const history = await MedicalRecord.find({ patient: patient._id })

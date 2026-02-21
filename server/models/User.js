@@ -1,10 +1,21 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { isValidEmail } from "../utils/validation.js";
 
 const userSchema = new mongoose.Schema(
   {
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true, minlength: 6 },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: (value) => isValidEmail(value),
+        message: "Enter a valid email address"
+      }
+    },
+    password: { type: String, required: true, minlength: 6, maxlength: 72 },
     role: { type: String, enum: ["doctor", "patient"], required: true },
     passwordResetCode: { type: String, default: null },
     passwordResetExpires: { type: Date, default: null },

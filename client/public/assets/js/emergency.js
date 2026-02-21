@@ -1,6 +1,26 @@
 let emergencyScanner = null;
 let emergencyScannerRunning = false;
 
+function formatEmergencyDateOnly(dateLike) {
+  const date = new Date(dateLike || Date.now());
+  if (Number.isNaN(date.getTime())) {
+    return 'Not set';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeEmergencyCardId(value) {
+  return String(value || '').trim().slice(0, 20).toUpperCase();
+}
+
+function isValidEmergencyCardId(value) {
+  return /^HC-\d{4}-\d{4}$/.test(normalizeEmergencyCardId(value));
+}
+
 function resolveEmergencyApiBaseUrl() {
   if (window.__HC_API_BASE_URL__) {
     return window.__HC_API_BASE_URL__;
@@ -93,7 +113,7 @@ function renderEmergencyData(payload) {
   document.getElementById('emergencyCardId').innerText = data.cardId || '--';
   document.getElementById('emergencyQrId').innerText = data.qrCodeId || '--';
   document.getElementById('emergencyBlood').innerText = data.bloodGroup || 'Not set';
-  document.getElementById('emergencyDob').innerText = data.dob ? new Date(data.dob).toISOString().split('T')[0] : 'Not set';
+  document.getElementById('emergencyDob').innerText = data.dob ? formatEmergencyDateOnly(data.dob) : 'Not set';
   document.getElementById('emergencyPhone').innerText = data.phoneNumber || 'Not set';
   document.getElementById('emergencyRelativePhone').innerText = data.relativePhoneNumber || 'Not set';
   document.getElementById('emergencyAllergies').innerText = allergies;
@@ -103,8 +123,14 @@ function renderEmergencyData(payload) {
 }
 
 async function fetchEmergencyByQr(qrValue) {
-  const normalized = String(qrValue || '').trim();
+  const normalized = normalizeEmergencyCardId(qrValue);
   if (!normalized) return;
+
+  if (!isValidEmergencyCardId(normalized)) {
+    setEmergencyError('Card/QR ID must be in HC-1234-5678 format.');
+    renderEmergencyData(null);
+    return;
+  }
 
   setEmergencyError('');
 
@@ -170,11 +196,17 @@ async function openEmergencyScannerModal() {
         const scanned = String(decodedText || '').trim();
         if (!scanned) return;
 
+        const normalizedScanned = normalizeEmergencyCardId(scanned);
+        if (!isValidEmergencyCardId(normalizedScanned)) {
+          setScannerStatus('Scanned value is invalid. Use HC-1234-5678 format.', true);
+          return;
+        }
+
         const input = document.getElementById('emergencySearchInput');
-        if (input) input.value = scanned;
+        if (input) input.value = normalizedScanned;
 
         await closeEmergencyScannerModal();
-        await fetchEmergencyByQr(scanned);
+        await fetchEmergencyByQr(normalizedScanned);
       },
       () => {}
     );
@@ -212,7 +244,8 @@ function initEmergencyPage() {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const input = document.getElementById('emergencySearchInput');
-      const value = input ? input.value.trim() : '';
+      const value = input ? normalizeEmergencyCardId(input.value) : '';
+      if (input) input.value = value;
       await fetchEmergencyByQr(value);
     });
   }

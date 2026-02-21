@@ -7,13 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" defer></script>
   </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen overflow-y-auto">
+  <body class="bg-slate-950 text-slate-100 min-h-screen overflow-y-auto antialiased selection:bg-emerald-400/30">
     
     <div class="fixed top-0 -left-40 h-[500px] w-[500px] rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10"></div>
     <div class="fixed bottom-0 right-0 h-96 w-96 rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none -z-10"></div>
 
     <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-4">
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-bold">HC</div>
           <div>
@@ -24,7 +24,7 @@
         <div class="flex items-center gap-4">
           <div class="hidden sm:block text-right pr-4 border-r border-white/10">
             <p class="text-sm font-medium text-white" id="headerName">Doctor</p>
-            <p class="text-xs text-slate-400">Cardiology Dept.</p>
+            <p class="text-xs text-slate-400" id="headerRole">Doctor</p>
           </div>
           <button onclick="logout()" class="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-200 hover:border-red-400 hover:text-red-400 transition">
             Logout
@@ -33,40 +33,65 @@
       </div>
     </header>
 
-    <main class="mx-auto w-full max-w-7xl px-6 py-8">
+    <main class="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
       
       <div class="mb-10 max-w-2xl">
         <h1 class="text-2xl md:text-3xl font-semibold text-white mb-2">Patient Lookup</h1>
         <p class="text-slate-400 mb-6">Enter a patient's Card ID or scan their QR code to access their medical records.</p>
         
-        <form id="searchForm" class="flex gap-3">
+        <form id="searchForm" class="flex flex-col sm:flex-row gap-3">
           <div class="relative flex-grow">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <input type="text" id="searchInput" placeholder="e.g. HC-8472-9910" class="w-full rounded-xl border border-white/10 bg-slate-900/80 pl-11 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition shadow-inner">
+            <input type="text" id="searchInput" placeholder="e.g. HC-8472-9910" required maxlength="20" pattern="^HC-\d{4}-\d{4}$" class="w-full rounded-xl border border-white/10 bg-slate-900/80 pl-11 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition shadow-inner">
           </div>
-          <button type="submit" class="whitespace-nowrap rounded-xl bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_0_15px_rgba(52,211,153,0.2)] hover:bg-emerald-300 transition-all">
+          <button type="submit" class="whitespace-nowrap rounded-xl bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_0_15px_rgba(52,211,153,0.2)] hover:bg-emerald-300 transition-all duration-200">
             Access Records
           </button>
-          <button id="openScannerBtn" type="button" class="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 hover:bg-white/10 transition" title="Scan QR Code">
+          <button id="openScannerBtn" type="button" class="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3.5 hover:bg-white/10 transition duration-200" title="Scan QR Code">
             <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
             <span class="text-sm font-medium text-slate-200 hidden sm:inline">Scan QR</span>
           </button>
         </form>
       </div>
 
+      <section class="mb-10 rounded-3xl border border-white/10 bg-slate-900/50 p-5 md:p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-white">My Profile</h2>
+          <span class="text-xs text-slate-400">Doctor</span>
+        </div>
+        <form id="doctorProfileForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input id="doctorFullName" type="text" required minlength="2" maxlength="80" pattern="^[A-Za-z][A-Za-z .'-]{1,79}$" placeholder="Full Name" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <input id="doctorSpecialization" type="text" maxlength="120" placeholder="Clinic / Specialization" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <input id="doctorHospitalName" type="text" maxlength="160" placeholder="Hospital Name" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <button type="submit" class="md:col-span-3 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Save Doctor Profile</button>
+        </form>
+        <p id="doctorProfileStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
+
+        <div class="mt-6 border-t border-white/10 pt-5">
+          <h3 class="text-sm font-semibold text-white mb-3">Change Password</h3>
+          <form id="doctorPasswordForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input id="doctorCurrentPassword" type="password" autocomplete="current-password" minlength="6" maxlength="72" required placeholder="Current Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="doctorNewPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="New Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="doctorConfirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="Confirm New Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <button type="submit" class="md:col-span-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20 transition">Update Password</button>
+          </form>
+          <p id="doctorPasswordStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
+        </div>
+      </section>
+
       <div id="errorMessage" class="hidden mb-8 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
         Patient Card ID not found. Please verify the number and try again.
       </div>
 
-      <div id="patientWorkspace" class="hidden grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div id="patientWorkspace" class="hidden grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         <div class="lg:col-span-5 space-y-6">
           
-          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6 md:p-8">
+          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-5 md:p-8 transition-all duration-300 hover:border-white/20">
             <div class="flex items-start justify-between border-b border-white/10 pb-6 mb-6">
               <div>
                 <h2 class="text-2xl font-bold text-white" id="patientName">--</h2>
@@ -101,12 +126,9 @@
               </div>
             </div>
 
-            <div id="profileMissingAlert" class="hidden mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 text-sm">
-              Patient profile is incomplete. Add DOB and blood group before saving a new visit record.
-            </div>
           </div>
 
-          <div class="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-900/20 to-slate-900 p-6 md:p-8 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+          <div class="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-900/20 to-slate-900 p-5 md:p-8 shadow-[0_0_20px_rgba(16,185,129,0.05)] transition-all duration-300 hover:border-emerald-400/40">
             <h3 class="text-lg font-semibold text-white mb-4">Add New Visit Record</h3>
             <form id="addRecordForm" class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -116,7 +138,7 @@
                 </div>
                 <div id="recordBloodGroupWrap">
                   <label class="text-xs text-slate-300 font-medium mb-2 block">Blood Group</label>
-                  <input id="recordBloodGroup" type="text" placeholder="e.g. O+" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                  <input id="recordBloodGroup" type="text" placeholder="e.g. O+" maxlength="3" pattern="^(A|B|AB|O)[+-]$" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
                 </div>
               </div>
               <div id="recordAllergiesWrap">
@@ -126,16 +148,32 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div id="recordPhoneWrap">
                   <label class="text-xs text-slate-300 font-medium mb-2 block">Phone</label>
-                  <input id="recordPhone" type="tel" placeholder="e.g. +91 9876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                  <input id="recordPhone" type="tel" inputmode="tel" maxlength="16" pattern="^\+?[1-9]\d{9,14}$" placeholder="e.g. +919876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
                 </div>
                 <div id="recordRelativePhoneWrap">
                   <label class="text-xs text-slate-300 font-medium mb-2 block">Relative Phone</label>
-                  <input id="recordRelativePhone" type="tel" placeholder="e.g. +91 9988776655" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                  <input id="recordRelativePhone" type="tel" inputmode="tel" maxlength="16" pattern="^\+?[1-9]\d{9,14}$" placeholder="e.g. +919988776655" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
                 </div>
               </div>
               <div>
                 <label class="text-xs text-slate-300 font-medium mb-2 block">Diagnosis *</label>
-                <input id="medicalDiagnosis" type="text" placeholder="Enter diagnosis" required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                <div class="relative">
+                  <select id="medicalDiagnosis" required class="w-full appearance-none rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 pr-11 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition">
+                    <option value="" class="bg-slate-900">Select diagnosis</option>
+                    <option value="Fever" class="bg-slate-900">Fever</option>
+                    <option value="Injury" class="bg-slate-900">Injury</option>
+                    <option value="Allergy" class="bg-slate-900">Allergy</option>
+                    <option value="Infection" class="bg-slate-900">Infection</option>
+                    <option value="Other" class="bg-slate-900">Other</option>
+                  </select>
+                  <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </span>
+                </div>
+                <div id="medicalDiagnosisCustomWrap" class="hidden mt-3">
+                  <input id="medicalDiagnosisCustom" type="text" placeholder="Enter custom diagnosis" minlength="2" maxlength="500" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Use predefined diagnosis to reduce incorrect entries.</p>
               </div>
               <div>
                 <label class="text-xs text-slate-300 font-medium mb-2 block">Notes</label>
@@ -143,7 +181,24 @@
               </div>
               <div>
                 <label class="text-xs text-slate-300 font-medium mb-2 block">Treatment</label>
-                <textarea id="medicalTreatment" rows="3" placeholder="Prescribed treatment" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition resize-none"></textarea>
+                <div class="relative">
+                  <select id="medicalTreatment" class="w-full appearance-none rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 pr-11 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition">
+                    <option value="" class="bg-slate-900">Select treatment (optional)</option>
+                    <option value="Medication" class="bg-slate-900">Medication</option>
+                    <option value="Rest" class="bg-slate-900">Rest</option>
+                    <option value="Dressing" class="bg-slate-900">Dressing</option>
+                    <option value="Injection" class="bg-slate-900">Injection</option>
+                    <option value="Antibiotics" class="bg-slate-900">Antibiotics</option>
+                    <option value="Other" class="bg-slate-900">Other</option>
+                  </select>
+                  <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </span>
+                </div>
+                <div id="medicalTreatmentCustomWrap" class="hidden mt-3">
+                  <input id="medicalTreatmentCustom" type="text" placeholder="Enter custom treatment" minlength="2" maxlength="400" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Choose common treatment or add manually using Other.</p>
               </div>
               <button type="submit" class="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 shadow-md hover:bg-emerald-300 transition-all flex justify-center items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -155,7 +210,7 @@
         </div>
 
         <div class="lg:col-span-7">
-          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6 md:p-8 h-full">
+          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-5 md:p-8 h-full transition-all duration-300 hover:border-white/20">
             <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
               <h2 class="text-xl font-semibold text-white">Patient History</h2>
               <span class="text-xs font-medium bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-white/10">Synchronized</span>
@@ -172,16 +227,16 @@
     <div id="profileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4">
       <div class="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-6 md:p-8">
         <h3 class="text-xl font-semibold text-white">Complete Patient Profile</h3>
-        <p class="mt-2 text-sm text-slate-400">DOB and blood group are required before adding a visit record.</p>
+        <p class="mt-2 text-sm text-slate-400">Blood group is required before adding a visit record.</p>
 
         <form id="profileForm" class="mt-6 space-y-4">
           <div>
-            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileDob">Date of Birth *</label>
-            <input id="profileDob" type="date" required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileDob">Date of Birth (optional)</label>
+            <input id="profileDob" type="date" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
           <div>
             <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileBloodGroup">Blood Group *</label>
-            <input id="profileBloodGroup" type="text" placeholder="e.g. O+" required class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="profileBloodGroup" type="text" placeholder="e.g. O+" required maxlength="3" pattern="^(A|B|AB|O)[+-]$" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
           <div>
             <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileAllergies">Known Allergies (optional)</label>
@@ -189,11 +244,11 @@
           </div>
           <div>
             <label class="text-xs text-slate-300 font-medium mb-2 block" for="profilePhone">Phone (optional)</label>
-            <input id="profilePhone" type="tel" placeholder="e.g. +91 9876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="profilePhone" type="tel" inputmode="tel" maxlength="16" pattern="^\+?[1-9]\d{9,14}$" placeholder="e.g. +919876543210" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
           <div>
             <label class="text-xs text-slate-300 font-medium mb-2 block" for="profileRelativePhone">Relative Phone (optional)</label>
-            <input id="profileRelativePhone" type="tel" placeholder="e.g. +91 9988776655" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="profileRelativePhone" type="tel" inputmode="tel" maxlength="16" pattern="^\+?[1-9]\d{9,14}$" placeholder="e.g. +919988776655" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
           </div>
 
           <div class="grid grid-cols-2 gap-3 pt-2">
@@ -205,7 +260,7 @@
     </div>
 
     <div id="scannerModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-950/85 px-0 sm:px-4">
-      <div class="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-white/10 bg-slate-900 p-5 sm:p-6">
+      <div class="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-white/10 bg-slate-900 p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div class="flex items-start justify-between gap-4">
           <div>
             <h3 class="text-lg font-semibold text-white">Scan Patient QR</h3>
@@ -215,14 +270,14 @@
         </div>
 
         <div class="mt-4 rounded-2xl border border-white/10 bg-slate-950/60 p-3">
-          <div id="scannerReader" class="w-full overflow-hidden rounded-xl"></div>
+          <div id="scannerReader" class="w-full overflow-hidden rounded-xl min-h-[260px] sm:min-h-[320px]"></div>
         </div>
 
         <p id="scannerStatus" class="mt-3 text-xs text-slate-400">Initializing camera...</p>
 
-        <div class="mt-4 flex gap-2">
-          <input id="scannerManualInput" type="text" placeholder="Enter Card ID manually" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-          <button type="button" id="scannerUseManualBtn" class="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Use</button>
+        <div class="mt-4 flex flex-col sm:flex-row gap-2">
+          <input id="scannerManualInput" type="text" required maxlength="20" pattern="^HC-\d{4}-\d{4}$" placeholder="Enter Card ID manually" class="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <button type="button" id="scannerUseManualBtn" class="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition sm:min-w-24">Use</button>
         </div>
       </div>
     </div>

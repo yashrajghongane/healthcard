@@ -4,6 +4,16 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import Patient from "../models/Patient.js";
 import Doctor from "../models/Doctor.js";
+import { protect } from "../middleware/authMiddleware.js";
+import {
+  getValidationErrorMessage,
+  isValidEmail,
+  isValidFullName,
+  isValidOtp,
+  isValidPassword,
+  normalizeEmail,
+  normalizeFullName
+} from "../utils/validation.js";
 
 const router = express.Router();
 
@@ -19,8 +29,6 @@ const createResetCode = () => {
   const max = (10 ** RESET_CODE_LENGTH) - 1;
   return String(crypto.randomInt(min, max + 1));
 };
-
-const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 
 const hasMakeConfig = () => Boolean(process.env.MAKE_WEBHOOK_URL);
 
@@ -68,7 +76,8 @@ const buildAuthResponse = async (user) => {
       ...baseUser,
       fullname: patient?.fullName || "Patient",
       cardId: patient?.healthCardId || null,
-      qrCodeId: patient?.qrCodeId || patient?.healthCardId || null
+      qrCodeId: patient?.qrCodeId || patient?.healthCardId || null,
+      address: patient?.address || ""
     };
   }
 
@@ -76,7 +85,9 @@ const buildAuthResponse = async (user) => {
     const doctor = await Doctor.findOne({ user: user._id });
     return {
       ...baseUser,
-      fullname: doctor?.fullName || "Doctor"
+      fullname: doctor?.fullName || "Doctor",
+      specialization: doctor?.specialization || "",
+      hospitalName: doctor?.hospitalName || ""
     };
   }
 
@@ -86,11 +97,27 @@ const buildAuthResponse = async (user) => {
 router.post("/register", async (req, res) => {
   try {
     const { email, password, role, fullName, fullname } = req.body;
-    const normalizedEmail = String(email || "").trim().toLowerCase();
-    const displayName = normalizeName(fullName, fullname);
+    const normalizedEmail = normalizeEmail(email);
+    const displayName = normalizeFullName(normalizeName(fullName, fullname));
 
     if (!normalizedEmail || !password || !role || !displayName) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ message: "Password must be 6 to 72 characters" });
+    }
+
+    if (!["doctor", "patient"].includes(String(role))) {
+      return res.status(400).json({ message: "Role must be doctor or patient" });
+    }
+
+    if (!isValidFullName(displayName)) {
+      return res.status(400).json({ message: "Enter a valid full name" });
     }
 
     const existingUser = await User.findOne({ email: normalizedEmail });
@@ -98,7 +125,7 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ message: "User already exists" });
     }
 
-    const user = await User.create({ email: normalizedEmail, password, role });
+    const user = await User.create({ email: normalizedEmail, password, role: String(role) });
 
     if (role === "patient") {
       await Patient.create({ user: user._id, fullName: displayName });
@@ -111,14 +138,20 @@ router.post("/register", async (req, res) => {
     const authUser = await buildAuthResponse(user);
     res.status(201).json({ token: generateToken(user._id), role: user.role, user: authUser });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Registration failed" });
+    const message = getValidationErrorMessage(error, "Registration failed");
+    const statusCode = error?.name === "ValidationError" || error?.code === 11000 ? 400 : 500;
+    res.status(statusCode).json({ message });
   }
 });
 
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!isValidEmail(normalizedEmail) || !isValidPassword(password)) {
+      return res.status(400).json({ message: "Enter valid email and password" });
+    }
 
     const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await user.matchPassword(password))) {
@@ -134,7 +167,7 @@ router.post("/login", async (req, res) => {
 
 router.post("/forgot-password", async (req, res) => {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = normalizeEmail(req.body?.email);
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ message: "Valid email is required" });
     }
@@ -176,11 +209,15 @@ router.post("/forgot-password", async (req, res) => {
 
 router.post("/forgot-password/verify", async (req, res) => {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = normalizeEmail(req.body?.email);
     const code = String(req.body?.code || "").trim();
 
     if (!email || !code) {
       return res.status(400).json({ success: false, message: "Email and code are required" });
+    }
+
+    if (!isValidEmail(email) || !isValidOtp(code)) {
+      return res.status(400).json({ success: false, message: "Invalid email or verification code format" });
     }
 
     const user = await User.findOne({ email });
@@ -206,15 +243,15 @@ router.post("/forgot-password/verify", async (req, res) => {
 
 router.post("/forgot-password/reset", async (req, res) => {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = normalizeEmail(req.body?.email);
     const newPassword = String(req.body?.newPassword || "").trim();
 
     if (!email || !newPassword) {
       return res.status(400).json({ success: false, message: "Email and new password are required" });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+    if (!isValidEmail(email) || !isValidPassword(newPassword)) {
+      return res.status(400).json({ success: false, message: "Invalid email or password format" });
     }
 
     const user = await User.findOne({ email });
@@ -235,6 +272,42 @@ router.post("/forgot-password/reset", async (req, res) => {
     return res.json({ success: true, message: "Password updated successfully" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message || "Password reset failed" });
+  }
+});
+
+router.post("/change-password", protect, async (req, res) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || "").trim();
+    const newPassword = String(req.body?.newPassword || "").trim();
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: "Current password and new password are required" });
+    }
+
+    if (!isValidPassword(currentPassword) || !isValidPassword(newPassword)) {
+      return res.status(400).json({ success: false, message: "Password must be 6 to 72 characters" });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ success: false, message: "New password must be different from current password" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Current password is incorrect" });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.json({ success: true, message: "Password changed successfully" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || "Failed to change password" });
   }
 });
 

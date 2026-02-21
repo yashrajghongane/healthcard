@@ -27,6 +27,27 @@ function getApiUrl(path) {
   return `${base}${path}`;
 }
 
+function normalizeInputText(value, maxLength = 2000) {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
+function normalizeInputEmail(value) {
+  return normalizeInputText(value, 120).toLowerCase();
+}
+
+function isValidInputEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeInputEmail(value));
+}
+
+function isValidInputPassword(value) {
+  const normalized = normalizeInputText(value, 72);
+  return normalized.length >= 6;
+}
+
+function isValidInputName(value) {
+  return /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(normalizeInputText(value, 80));
+}
+
 function buildNetworkErrorMessage(url) {
   try {
     const parsed = new URL(url);
@@ -152,12 +173,32 @@ async function registerAccount(userData) {
   }
 
   try {
+    const normalizedEmail = normalizeInputEmail(userData.email);
+    const normalizedPassword = normalizeInputText(userData.password, 72);
+    const normalizedName = normalizeInputText(userData.fullname, 80);
+
+    if (!isValidInputName(normalizedName)) {
+      return { success: false, message: 'Enter a valid full name' };
+    }
+
+    if (!isValidInputEmail(normalizedEmail)) {
+      return { success: false, message: 'Enter a valid email address' };
+    }
+
+    if (!isValidInputPassword(normalizedPassword)) {
+      return { success: false, message: 'Password must be 6 to 72 characters' };
+    }
+
+    if (!['patient', 'doctor'].includes(String(userData.role || ''))) {
+      return { success: false, message: 'Invalid role selected' };
+    }
+
     const payload = {
-      email: String(userData.email || '').trim().toLowerCase(),
-      password: String(userData.password || '').trim(),
+      email: normalizedEmail,
+      password: normalizedPassword,
       role: userData.role,
-      fullname: userData.fullname,
-      fullName: userData.fullname
+      fullname: normalizedName,
+      fullName: normalizedName
     };
 
     const response = await fetch(getApiUrl('/api/auth/register'), {
@@ -198,9 +239,16 @@ async function loginAccount(email, password) {
   }
 
   try {
+    const normalizedEmail = normalizeInputEmail(email);
+    const normalizedPassword = normalizeInputText(password, 72);
+
+    if (!isValidInputEmail(normalizedEmail) || !isValidInputPassword(normalizedPassword)) {
+      return { success: false, message: 'Enter valid email and password' };
+    }
+
     const payload = {
-      email: String(email || '').trim().toLowerCase(),
-      password: String(password || '').trim()
+      email: normalizedEmail,
+      password: normalizedPassword
     };
 
     const response = await fetch(getApiUrl('/api/auth/login'), {
@@ -236,9 +284,9 @@ async function loginAccount(email, password) {
 }
 
 async function requestPasswordReset(email) {
-  const normalizedEmail = String(email || '').trim().toLowerCase();
-  if (!normalizedEmail) {
-    return { success: false, message: 'Email is required' };
+  const normalizedEmail = normalizeInputEmail(email);
+  if (!normalizedEmail || !isValidInputEmail(normalizedEmail)) {
+    return { success: false, message: 'Valid email is required' };
   }
 
   if (!AUTH_CONFIG.useBackend) {
@@ -282,11 +330,15 @@ async function requestPasswordReset(email) {
 }
 
 async function verifyResetCode(email, code) {
-  const normalizedEmail = String(email || '').trim().toLowerCase();
-  const normalizedCode = String(code || '').trim();
+  const normalizedEmail = normalizeInputEmail(email);
+  const normalizedCode = normalizeInputText(code, 6);
 
   if (!normalizedEmail || !normalizedCode) {
     return { success: false, message: 'Email and code are required' };
+  }
+
+  if (!isValidInputEmail(normalizedEmail) || !/^\d{6}$/.test(normalizedCode)) {
+    return { success: false, message: 'Invalid email or verification code format' };
   }
 
   if (!AUTH_CONFIG.useBackend) {
@@ -334,15 +386,15 @@ async function verifyResetCode(email, code) {
 }
 
 async function resetForgottenPassword(email, newPassword) {
-  const normalizedEmail = String(email || '').trim().toLowerCase();
-  const trimmedPassword = String(newPassword || '').trim();
+  const normalizedEmail = normalizeInputEmail(email);
+  const trimmedPassword = normalizeInputText(newPassword, 72);
 
   if (!normalizedEmail || !trimmedPassword) {
     return { success: false, message: 'Email and password are required' };
   }
 
-  if (trimmedPassword.length < 6) {
-    return { success: false, message: 'Password must be at least 6 characters' };
+  if (!isValidInputEmail(normalizedEmail) || !isValidInputPassword(trimmedPassword)) {
+    return { success: false, message: 'Invalid email or password format' };
   }
 
   if (!AUTH_CONFIG.useBackend) {
@@ -393,6 +445,78 @@ async function resetForgottenPassword(email, newPassword) {
       message: isNetworkError
         ? buildNetworkErrorMessage(url)
         : (error.message || 'Password reset failed')
+    };
+  }
+}
+
+async function changePasswordAccount(currentPassword, newPassword) {
+  const current = normalizeInputText(currentPassword, 72);
+  const next = normalizeInputText(newPassword, 72);
+
+  if (!current || !next) {
+    return { success: false, message: 'Current password and new password are required' };
+  }
+
+  if (!isValidInputPassword(current) || !isValidInputPassword(next)) {
+    return { success: false, message: 'Password must be 6 to 72 characters' };
+  }
+
+  if (current === next) {
+    return { success: false, message: 'New password must be different from current password' };
+  }
+
+  if (!AUTH_CONFIG.useBackend) {
+    const currentUser = getCurrentUser();
+    const users = JSON.parse(localStorage.getItem('users')) || {};
+    const email = normalizeInputEmail(currentUser?.email || '');
+    if (!email || !users[email]) {
+      return { success: false, message: 'User not found' };
+    }
+
+    if (String(users[email].password || '') !== current) {
+      return { success: false, message: 'Current password is incorrect' };
+    }
+
+    users[email].password = next;
+    localStorage.setItem('users', JSON.stringify(users));
+    return { success: true, message: 'Password changed successfully' };
+  }
+
+  try {
+    const token = localStorage.getItem('authToken') || '';
+    if (!token) {
+      return { success: false, message: 'Please login again to change password' };
+    }
+
+    const response = await fetch(getApiUrl('/api/auth/change-password'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        currentPassword: current,
+        newPassword: next
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.success === false) {
+      return {
+        success: false,
+        message: data.message || 'Failed to change password'
+      };
+    }
+
+    return { success: true, message: data.message || 'Password changed successfully' };
+  } catch (error) {
+    const url = getApiUrl('/api/auth/change-password');
+    const isNetworkError = error && (error.name === 'TypeError' || String(error.message || '').includes('Failed to fetch'));
+    return {
+      success: false,
+      message: isNetworkError
+        ? buildNetworkErrorMessage(url)
+        : (error.message || 'Failed to change password')
     };
   }
 }

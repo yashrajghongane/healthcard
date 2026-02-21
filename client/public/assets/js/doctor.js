@@ -5,6 +5,130 @@ let qrCodeScanner = null;
 let isScannerRunning = false;
 let otpModalResolver = null;
 
+function getTodayDateInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function applyDateInputMax() {
+  const maxDate = getTodayDateInputValue();
+  const dateInputIds = ['recordDob', 'profileDob'];
+
+  dateInputIds.forEach((inputId) => {
+    const input = document.getElementById(inputId);
+    if (input) {
+      input.setAttribute('max', maxDate);
+    }
+  });
+}
+
+function normalizeDoctorText(value, maxLength = 2000) {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
+function normalizeDoctorCardId(value) {
+  return normalizeDoctorText(value, 20).toUpperCase();
+}
+
+function isValidDoctorCardId(value) {
+  return /^HC-\d{4}-\d{4}$/.test(normalizeDoctorCardId(value));
+}
+
+function normalizeDoctorPhone(value) {
+  return normalizeDoctorText(value, 20).replace(/[\s()-]/g, '');
+}
+
+function isValidDoctorPhone(value) {
+  const normalized = normalizeDoctorPhone(value);
+  if (!normalized) return true;
+  return /^\+?[1-9]\d{9,14}$/.test(normalized);
+}
+
+function normalizeDoctorBloodGroup(value) {
+  return normalizeDoctorText(value, 5).toUpperCase();
+}
+
+function isValidDoctorBloodGroup(value) {
+  const normalized = normalizeDoctorBloodGroup(value);
+  if (!normalized) return true;
+  return ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].includes(normalized);
+}
+
+function isValidDoctorDob(value) {
+  if (!value) return true;
+  const dob = new Date(value);
+  if (Number.isNaN(dob.getTime())) return false;
+  const now = new Date();
+  const oldest = new Date();
+  oldest.setFullYear(now.getFullYear() - 130);
+  return dob <= now && dob >= oldest;
+}
+
+function toggleDiagnosisCustomInput() {
+  const diagnosisSelect = document.getElementById('medicalDiagnosis');
+  const customWrap = document.getElementById('medicalDiagnosisCustomWrap');
+  const customInput = document.getElementById('medicalDiagnosisCustom');
+
+  if (!diagnosisSelect || !customWrap || !customInput) return;
+
+  if (diagnosisSelect.value === 'Other') {
+    customWrap.classList.remove('hidden');
+    customInput.required = true;
+  } else {
+    customWrap.classList.add('hidden');
+    customInput.required = false;
+    customInput.value = '';
+  }
+}
+
+function getNormalizedDiagnosisValue() {
+  const diagnosisSelect = document.getElementById('medicalDiagnosis');
+  const customInput = document.getElementById('medicalDiagnosisCustom');
+  const selectedValue = diagnosisSelect ? normalizeDoctorText(diagnosisSelect.value, 500) : '';
+
+  if (!selectedValue) return '';
+
+  if (selectedValue === 'Other') {
+    return customInput ? normalizeDoctorText(customInput.value, 500) : '';
+  }
+
+  return selectedValue;
+}
+
+function toggleTreatmentCustomInput() {
+  const treatmentSelect = document.getElementById('medicalTreatment');
+  const customWrap = document.getElementById('medicalTreatmentCustomWrap');
+  const customInput = document.getElementById('medicalTreatmentCustom');
+
+  if (!treatmentSelect || !customWrap || !customInput) return;
+
+  if (treatmentSelect.value === 'Other') {
+    customWrap.classList.remove('hidden');
+    customInput.required = true;
+  } else {
+    customWrap.classList.add('hidden');
+    customInput.required = false;
+    customInput.value = '';
+  }
+}
+
+function getNormalizedTreatmentValue() {
+  const treatmentSelect = document.getElementById('medicalTreatment');
+  const customInput = document.getElementById('medicalTreatmentCustom');
+  const selectedValue = treatmentSelect ? normalizeDoctorText(treatmentSelect.value, 400) : '';
+
+  if (!selectedValue) return '';
+
+  if (selectedValue === 'Other') {
+    return customInput ? normalizeDoctorText(customInput.value, 400) : '';
+  }
+
+  return selectedValue;
+}
+
 function formatAllergiesForDisplay(allergies) {
   if (Array.isArray(allergies)) {
     return allergies.length ? allergies.join(', ') : 'Not set';
@@ -18,7 +142,7 @@ function formatAllergiesForDisplay(allergies) {
 }
 
 function hasIncompleteProfile(patient) {
-  return !patient.dob || !patient.bloodGroup;
+  return !patient.bloodGroup;
 }
 
 function hasAllergyValue(allergies) {
@@ -101,6 +225,110 @@ function setInlineProfileInputs(patient) {
   toggleInlineProfileInputsVisibility(patient);
 }
 
+function setDoctorProfileStatus(message, isError = false) {
+  const status = document.getElementById('doctorProfileStatus');
+  if (!status) return;
+
+  status.classList.remove('hidden');
+  status.className = `mt-3 rounded-lg border px-3 py-2 text-xs ${isError ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`;
+  status.innerText = message;
+}
+
+function setDoctorPasswordStatus(message, isError = false) {
+  const status = document.getElementById('doctorPasswordStatus');
+  if (!status) return;
+
+  status.classList.remove('hidden');
+  status.className = `hidden mt-3 rounded-lg border px-3 py-2 text-xs ${isError ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`;
+  status.classList.remove('hidden');
+  status.innerText = message;
+}
+
+function initDoctorPasswordForm() {
+  const form = document.getElementById('doctorPasswordForm');
+  if (!form) return;
+
+  const currentInput = document.getElementById('doctorCurrentPassword');
+  const newInput = document.getElementById('doctorNewPassword');
+  const confirmInput = document.getElementById('doctorConfirmPassword');
+
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    if (!form.reportValidity()) {
+      return;
+    }
+
+    const currentPassword = currentInput ? String(currentInput.value || '').trim() : '';
+    const newPassword = newInput ? String(newInput.value || '').trim() : '';
+    const confirmPassword = confirmInput ? String(confirmInput.value || '').trim() : '';
+
+    if (newPassword !== confirmPassword) {
+      setDoctorPasswordStatus('New password and confirm password must match.', true);
+      return;
+    }
+
+    const result = await changePasswordAccount(currentPassword, newPassword);
+    if (!result.success) {
+      setDoctorPasswordStatus(result.message || 'Failed to change password.', true);
+      return;
+    }
+
+    if (currentInput) currentInput.value = '';
+    if (newInput) newInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+    setDoctorPasswordStatus('Password updated successfully.');
+  });
+}
+
+async function initDoctorProfileForm(currentUser) {
+  const profileForm = document.getElementById('doctorProfileForm');
+  if (!profileForm) return;
+
+  const fullNameInput = document.getElementById('doctorFullName');
+  const specializationInput = document.getElementById('doctorSpecialization');
+  const hospitalInput = document.getElementById('doctorHospitalName');
+
+  const profile = await getMyDoctorProfile();
+  const resolvedProfile = profile || {
+    fullName: currentUser?.fullname || 'Doctor',
+    specialization: currentUser?.specialization || '',
+    hospitalName: currentUser?.hospitalName || ''
+  };
+
+  if (fullNameInput) fullNameInput.value = resolvedProfile.fullName || '';
+  if (specializationInput) specializationInput.value = resolvedProfile.specialization || '';
+  if (hospitalInput) hospitalInput.value = resolvedProfile.hospitalName || '';
+
+  profileForm.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    if (!profileForm.reportValidity()) {
+      return;
+    }
+
+    const payload = {
+      fullName: fullNameInput ? fullNameInput.value.trim() : '',
+      specialization: specializationInput ? specializationInput.value.trim() : '',
+      hospitalName: hospitalInput ? hospitalInput.value.trim() : ''
+    };
+
+    const result = await updateMyDoctorProfile(payload);
+    if (!result.success) {
+      setDoctorProfileStatus(result.message || 'Failed to update doctor profile', true);
+      return;
+    }
+
+    const updatedUser = getCurrentUser();
+    const headerName = document.getElementById('headerName');
+    if (headerName && updatedUser) {
+      headerName.innerText = updatedUser.fullname || 'Doctor';
+    }
+
+    setDoctorProfileStatus('Doctor profile updated successfully.');
+  });
+}
+
 // Initialize doctor dashboard
 function initDoctorDashboard() {
   // Check authentication
@@ -115,11 +343,20 @@ function initDoctorDashboard() {
 
   // Populate header
   const headerName = document.getElementById('headerName');
+  const headerRole = document.getElementById('headerRole');
   if (headerName) {
-    headerName.innerText = currentUser.fullname;
+    headerName.innerText = currentUser.fullname || 'Doctor';
   }
 
+  if (headerRole) {
+    headerRole.innerText = 'Doctor';
+  }
+
+  initDoctorProfileForm(currentUser);
+  initDoctorPasswordForm();
+
   // Setup event listeners
+  applyDateInputMax();
   setupSearchForm();
   setupScannerModal();
   setupAddRecordForm();
@@ -249,24 +486,34 @@ function setupSearchForm() {
 
   searchForm.addEventListener('submit', async function(e) {
     e.preventDefault();
-    const query = document.getElementById('searchInput').value.trim();
+    const query = normalizeDoctorCardId(document.getElementById('searchInput').value);
+    if (!isValidDoctorCardId(query)) {
+      showSystemMessage('Card ID must be in HC-1234-5678 format.', 'error');
+      return;
+    }
     await searchPatient(query);
   });
 }
 
 // Search for patient by card ID
 async function searchPatient(cardId) {
+  const normalizedCardId = normalizeDoctorCardId(cardId);
   const workspace = document.getElementById('patientWorkspace');
   const errorMsg = document.getElementById('errorMessage');
   
-  if (!cardId) {
+  if (!normalizedCardId) {
     return;
   }
 
-  const patient = await getPatientByCardId(cardId);
+  if (!isValidDoctorCardId(normalizedCardId)) {
+    showSystemMessage('Card ID must be in HC-1234-5678 format.', 'error');
+    return;
+  }
+
+  const patient = await getPatientByCardId(normalizedCardId);
 
   if (patient) {
-    currentPatientId = patient.cardId || cardId;
+    currentPatientId = patient.cardId || normalizedCardId;
     
     // Populate UI
     const patientName = document.getElementById('patientName');
@@ -285,15 +532,6 @@ async function searchPatient(cardId) {
     if (patientRelativePhone) patientRelativePhone.innerText = patient.relativePhone || 'Not set';
     if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(patient.allergies);
     setInlineProfileInputs(patient);
-
-    const profileAlert = document.getElementById('profileMissingAlert');
-    if (profileAlert) {
-      if (hasIncompleteProfile(patient)) {
-        profileAlert.classList.remove('hidden');
-      } else {
-        profileAlert.classList.add('hidden');
-      }
-    }
 
     // Render timeline
     renderTimeline(patient.history || []);
@@ -316,11 +554,6 @@ async function searchPatient(cardId) {
       errorMsg.classList.remove('hidden');
     }
     currentPatientId = null;
-
-    const profileAlert = document.getElementById('profileMissingAlert');
-    if (profileAlert) {
-      profileAlert.classList.add('hidden');
-    }
 
     setInlineProfileInputs({ dob: '', bloodGroup: '', allergies: '', phone: '', relativePhone: '' });
     toggleInlineProfileInputsVisibility(null);
@@ -370,16 +603,27 @@ function setupAddRecordForm() {
   const addRecordForm = document.getElementById('addRecordForm');
   if (!addRecordForm) return;
 
+  const diagnosisSelect = document.getElementById('medicalDiagnosis');
+  if (diagnosisSelect) {
+    diagnosisSelect.addEventListener('change', toggleDiagnosisCustomInput);
+    toggleDiagnosisCustomInput();
+  }
+
+  const treatmentSelect = document.getElementById('medicalTreatment');
+  if (treatmentSelect) {
+    treatmentSelect.addEventListener('change', toggleTreatmentCustomInput);
+    toggleTreatmentCustomInput();
+  }
+
   addRecordForm.addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const diagnosisInput = document.getElementById('medicalDiagnosis');
     const notesInput = document.getElementById('medicalNotes');
     const treatmentInput = document.getElementById('medicalTreatment');
 
-    const diagnosis = diagnosisInput ? diagnosisInput.value.trim() : '';
+    const diagnosis = getNormalizedDiagnosisValue();
     const notes = notesInput ? notesInput.value.trim() : '';
-    const treatment = treatmentInput ? treatmentInput.value.trim() : '';
+    const treatment = treatmentInput ? getNormalizedTreatmentValue() : '';
 
     const recordDobInput = document.getElementById('recordDob');
     const recordBloodInput = document.getElementById('recordBloodGroup');
@@ -388,13 +632,39 @@ function setupAddRecordForm() {
     const recordRelativePhoneInput = document.getElementById('recordRelativePhone');
 
     const inlineDob = recordDobInput ? recordDobInput.value : '';
-    const inlineBloodGroup = recordBloodInput ? recordBloodInput.value.trim() : '';
+    const inlineBloodGroup = recordBloodInput ? normalizeDoctorBloodGroup(recordBloodInput.value) : '';
     const inlineAllergies = recordAllergiesInput ? recordAllergiesInput.value : '';
-    const inlinePhone = recordPhoneInput ? recordPhoneInput.value.trim() : '';
-    const inlineRelativePhone = recordRelativePhoneInput ? recordRelativePhoneInput.value.trim() : '';
+    const inlinePhone = recordPhoneInput ? normalizeDoctorPhone(recordPhoneInput.value) : '';
+    const inlineRelativePhone = recordRelativePhoneInput ? normalizeDoctorPhone(recordRelativePhoneInput.value) : '';
 
-    if (!diagnosis || !currentPatientId) {
-      showSystemMessage('Please enter diagnosis and ensure a patient is selected.', 'error');
+    if (!diagnosis || diagnosis.length < 2 || !currentPatientId) {
+      showSystemMessage('Please select diagnosis and ensure a patient is selected.', 'error');
+      return;
+    }
+
+    const selectedTreatment = treatmentInput ? normalizeDoctorText(treatmentInput.value, 400) : '';
+    if (selectedTreatment === 'Other' && (!treatment || treatment.length < 2)) {
+      showSystemMessage('Please enter custom treatment or choose a predefined treatment.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorCardId(currentPatientId)) {
+      showSystemMessage('Card ID must be in HC-1234-5678 format.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorDob(inlineDob)) {
+      showSystemMessage('DOB must be a valid past date.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorBloodGroup(inlineBloodGroup)) {
+      showSystemMessage('Blood group must be one of A+, A-, B+, B-, AB+, AB-, O+, O-.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorPhone(inlinePhone) || !isValidDoctorPhone(inlineRelativePhone)) {
+      showSystemMessage('Phone number format is invalid. Use international format like +919876543210.', 'error');
       return;
     }
 
@@ -510,12 +780,18 @@ async function createRecord({ diagnosis, notes, treatment }) {
 
     // Clear the form
     const diagnosisInput = document.getElementById('medicalDiagnosis');
+    const diagnosisCustomInput = document.getElementById('medicalDiagnosisCustom');
     const notesInput = document.getElementById('medicalNotes');
     const treatmentInput = document.getElementById('medicalTreatment');
+    const treatmentCustomInput = document.getElementById('medicalTreatmentCustom');
 
     if (diagnosisInput) diagnosisInput.value = '';
+    if (diagnosisCustomInput) diagnosisCustomInput.value = '';
     if (notesInput) notesInput.value = '';
     if (treatmentInput) treatmentInput.value = '';
+    if (treatmentCustomInput) treatmentCustomInput.value = '';
+    toggleDiagnosisCustomInput();
+    toggleTreatmentCustomInput();
 
     // Show success message
     showSuccessMessage('Record added successfully!');
@@ -549,13 +825,28 @@ function setupProfileModal() {
     const relativePhoneInput = document.getElementById('profileRelativePhone');
 
     const dob = dobInput ? dobInput.value : '';
-    const bloodGroup = bloodInput ? bloodInput.value.trim() : '';
+    const bloodGroup = bloodInput ? normalizeDoctorBloodGroup(bloodInput.value) : '';
     const allergies = allergiesInput ? allergiesInput.value : '';
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-    const relativePhone = relativePhoneInput ? relativePhoneInput.value.trim() : '';
+    const phone = phoneInput ? normalizeDoctorPhone(phoneInput.value) : '';
+    const relativePhone = relativePhoneInput ? normalizeDoctorPhone(relativePhoneInput.value) : '';
 
-    if (!dob || !bloodGroup) {
-      showSystemMessage('DOB and blood group are required before adding records.', 'error');
+    if (!bloodGroup) {
+      showSystemMessage('Blood group is required before adding records.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorDob(dob)) {
+      showSystemMessage('DOB must be a valid past date.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorBloodGroup(bloodGroup)) {
+      showSystemMessage('Blood group must be one of A+, A-, B+, B-, AB+, AB-, O+, O-.', 'error');
+      return;
+    }
+
+    if (!isValidDoctorPhone(phone) || !isValidDoctorPhone(relativePhone)) {
+      showSystemMessage('Phone number format is invalid. Use international format like +919876543210.', 'error');
       return;
     }
 
@@ -577,14 +868,12 @@ function setupProfileModal() {
     const patientPhone = document.getElementById('patientPhone');
     const patientRelativePhone = document.getElementById('patientRelativePhone');
     const patientAllergies = document.getElementById('patientAllergies');
-    const profileAlert = document.getElementById('profileMissingAlert');
 
     if (patientDob) patientDob.innerText = updateResult.patient.dob || 'Not set';
     if (patientBlood) patientBlood.innerText = updateResult.patient.bloodGroup || 'Not set';
     if (patientPhone) patientPhone.innerText = updateResult.patient.phone || 'Not set';
     if (patientRelativePhone) patientRelativePhone.innerText = updateResult.patient.relativePhone || 'Not set';
     if (patientAllergies) patientAllergies.innerText = formatAllergiesForDisplay(updateResult.patient.allergies);
-    if (profileAlert) profileAlert.classList.add('hidden');
 
     // Frontend-only mode: patient profile is stored in localStorage
 
@@ -594,9 +883,9 @@ function setupProfileModal() {
     const notesInput = document.getElementById('medicalNotes');
     const treatmentInput = document.getElementById('medicalTreatment');
 
-    const diagnosis = diagnosisInput ? diagnosisInput.value.trim() : '';
+    const diagnosis = diagnosisInput ? getNormalizedDiagnosisValue() : '';
     const notes = notesInput ? notesInput.value.trim() : '';
-    const treatment = treatmentInput ? treatmentInput.value.trim() : '';
+    const treatment = treatmentInput ? getNormalizedTreatmentValue() : '';
 
     if (diagnosis) {
       await createRecord({ diagnosis, notes, treatment });
@@ -693,7 +982,7 @@ function setupOtpModal() {
       event.preventDefault();
       const otpInput = document.getElementById('otpInput');
       const otp = otpInput ? String(otpInput.value || '').trim() : '';
-      if (!otp || otp.length !== 6) {
+      if (!/^\d{6}$/.test(otp)) {
         showSystemMessage('Please enter valid 6-digit OTP.', 'error');
         return;
       }
