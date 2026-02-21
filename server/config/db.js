@@ -1,13 +1,31 @@
 import mongoose from "mongoose";
 
+let lastMongoConnectionError = null;
+
+function resolveMongoUri() {
+  return process.env.MONGO_URI || process.env.MONGODB_URI || process.env.DATABASE_URL || "";
+}
+
+export function getLastMongoConnectionError() {
+  return lastMongoConnectionError;
+}
+
+export function isMongoUriConfigured() {
+  return Boolean(resolveMongoUri());
+}
+
 const connectDB = async () => {
-  const mongoUri = process.env.MONGO_URI;
+  const mongoUri = resolveMongoUri();
   if (!mongoUri) {
-    throw new Error("MONGO_URI is not set");
+    lastMongoConnectionError = "Missing Mongo URI. Set MONGO_URI (or MONGODB_URI/DATABASE_URL).";
+    throw new Error(lastMongoConnectionError);
   }
 
   try {
-    const conn = await mongoose.connect(mongoUri);
+    const conn = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000
+    });
+    lastMongoConnectionError = null;
 
     const patientsCollection = conn.connection.db.collection("patients");
     try {
@@ -46,6 +64,7 @@ const connectDB = async () => {
     console.log("MongoDB Connected:", conn.connection.host);
     return true;
   } catch (error) {
+    lastMongoConnectionError = error.message || "MongoDB connection failed";
     console.error("MongoDB connection failed:", error.message);
     throw error;
   }

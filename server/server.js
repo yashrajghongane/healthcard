@@ -5,7 +5,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
-import connectDB from "./config/db.js";
+import connectDB, { getLastMongoConnectionError, isMongoUriConfigured } from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
@@ -33,7 +33,9 @@ app.get("/api/health", (req, res) => {
   const dbConnected = mongoose.connection.readyState === 1;
   res.json({
     message: "HealthCard API Running",
-    database: dbConnected ? "connected" : "disconnected"
+    database: dbConnected ? "connected" : "disconnected",
+    mongoUriConfigured: isMongoUriConfigured(),
+    mongoLastError: getLastMongoConnectionError()
   });
 });
 
