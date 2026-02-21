@@ -1,8 +1,13 @@
 import mongoose from "mongoose";
 
 const connectDB = async () => {
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    throw new Error("MONGO_URI is not set");
+  }
+
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    const conn = await mongoose.connect(mongoUri);
 
     const patientsCollection = conn.connection.db.collection("patients");
     try {
@@ -39,9 +44,10 @@ const connectDB = async () => {
     }
 
     console.log("MongoDB Connected:", conn.connection.host);
+    return true;
   } catch (error) {
-    console.error(error.message);
-    process.exit(1);
+    console.error("MongoDB connection failed:", error.message);
+    throw error;
   }
 };
 

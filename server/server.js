@@ -11,9 +11,9 @@ import authRoutes from "./routes/authRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
+import mongoose from "mongoose";
 
 dotenv.config();
-connectDB();
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +30,11 @@ app.use(express.static(clientPublicPath));
 
 
 app.get("/api/health", (req, res) => {
-  res.json({ message: "HealthCard API Running" });
+  const dbConnected = mongoose.connection.readyState === 1;
+  res.json({
+    message: "HealthCard API Running",
+    database: dbConnected ? "connected" : "disconnected"
+  });
 });
 
 app.use("/api/", emergencyRoutes);
@@ -43,3 +47,14 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)
 );
+
+const connectDatabaseWithRetry = async () => {
+  try {
+    await connectDB();
+  } catch (error) {
+    console.error("Retrying MongoDB connection in 10 seconds...");
+    setTimeout(connectDatabaseWithRetry, 10000);
+  }
+};
+
+connectDatabaseWithRetry();
