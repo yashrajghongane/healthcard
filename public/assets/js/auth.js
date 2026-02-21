@@ -60,7 +60,7 @@ function buildNetworkErrorMessage(url) {
   } catch {
   }
 
-  return `Cannot reach backend API at ${url}. Start server with: cd server && npm run dev`;
+  return `Cannot reach backend API at ${url}. If deployed, verify the API base URL and Railway environment variables; for local development run: cd server && npm run dev`;
 }
 
 function normalizeBackendUser(user) {
