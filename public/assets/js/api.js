@@ -11,23 +11,7 @@ function resolveApiBaseUrl() {
   if (window.__HC_API_BASE_URL__) {
     return window.__HC_API_BASE_URL__;
   }
-
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const hostname = window.location.hostname || 'localhost';
-  const apiPort = window.__HC_API_PORT__ || '5000';
-  const hasCustomPort = Boolean(window.__HC_API_PORT__);
-
-  if (hostname.endsWith('.app.github.dev')) {
-    const codespacesHost = hostname.replace(/-\d+\.app\.github\.dev$/, `-${apiPort}.app.github.dev`);
-    return `${protocol}//${codespacesHost}`;
-  }
-
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  if (!isLocalhost && !hasCustomPort) {
-    return `${protocol}//${hostname}`;
-  }
-
-  return `${protocol}//${hostname}:${apiPort}`;
+  return 'http://localhost:5000';
 }
 
 function getApiUrl(path) {
