@@ -18,7 +18,7 @@ connectDB();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const clientPublicPath = path.resolve(__dirname, "../client/public");
+const clientPublicPath = path.resolve(__dirname, "../public");
 
 
 app.set("trust proxy", 1);
@@ -38,6 +38,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/patient", patientRoutes);
 
-app.listen(process.env.PORT, () =>
-  console.log(`Server running on port ${process.env.PORT}`)
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT}`)
 );

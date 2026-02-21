@@ -329,6 +329,35 @@ async function initDoctorProfileForm(currentUser) {
   });
 }
 
+function setupDoctorProfileModal() {
+  const openButton = document.getElementById('openDoctorProfileModal');
+  const closeButton = document.getElementById('closeDoctorProfileModal');
+  const modal = document.getElementById('doctorProfileModal');
+
+  if (!modal) return;
+
+  if (openButton) {
+    openButton.addEventListener('click', function() {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    });
+  }
+
+  if (closeButton) {
+    closeButton.addEventListener('click', function() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+  }
+
+  modal.addEventListener('click', function(event) {
+    if (event.target === modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  });
+}
+
 // Initialize doctor dashboard
 function initDoctorDashboard() {
   // Check authentication
@@ -354,6 +383,7 @@ function initDoctorDashboard() {
 
   initDoctorProfileForm(currentUser);
   initDoctorPasswordForm();
+  setupDoctorProfileModal();
 
   // Setup event listeners
   applyDateInputMax();

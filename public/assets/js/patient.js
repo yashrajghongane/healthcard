@@ -57,6 +57,7 @@ async function initPatientDashboard() {
   // Populate timeline
   populateTimeline(patientData.history || []);
 
+  setupPatientProfileModal();
   setupPatientProfileForm(patientData);
 }
 
@@ -85,7 +86,37 @@ function showEmptyProfile(currentUser) {
 
   populateTimeline([]);
 
+  setupPatientProfileModal();
   setupPatientProfileForm({ address: '', phone: '', relativePhone: '' });
+}
+
+function setupPatientProfileModal() {
+  const openButton = document.getElementById('openPatientProfileModal');
+  const closeButton = document.getElementById('closePatientProfileModal');
+  const modal = document.getElementById('patientProfileModal');
+
+  if (!modal) return;
+
+  if (openButton) {
+    openButton.addEventListener('click', function() {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    });
+  }
+
+  if (closeButton) {
+    closeButton.addEventListener('click', function() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+  }
+
+  modal.addEventListener('click', function(event) {
+    if (event.target === modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  });
 }
 
 function setPatientProfileStatus(message, isError = false) {

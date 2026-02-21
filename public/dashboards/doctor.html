@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Doctor dashboard for secure patient lookup, medical history review, and treatment record updates in HealthCard." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="HealthCard" />
+    <meta property="og:title" content="Doctor Dashboard | HealthCard" />
+    <meta property="og:description" content="Secure doctor portal for patient record access and updates." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Doctor Dashboard | HealthCard" />
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="shortcut icon" href="../favicon.svg" />
     <title>Doctor Dashboard | HealthCard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" defer></script>
@@ -26,6 +36,10 @@
             <p class="text-sm font-medium text-white" id="headerName">Doctor</p>
             <p class="text-xs text-slate-400" id="headerRole">Doctor</p>
           </div>
+          <button id="openDoctorProfileModal" type="button" class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-xs text-slate-200 hover:border-emerald-400/50 hover:text-emerald-200 transition" title="Open profile settings">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A10.963 10.963 0 0112 15c2.63 0 5.047.92 6.879 2.454M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="hidden sm:inline">Profile</span>
+          </button>
           <button onclick="logout()" class="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-200 hover:border-red-400 hover:text-red-400 transition">
             Logout
           </button>
@@ -57,31 +71,6 @@
           </button>
         </form>
       </div>
-
-      <section class="mb-10 rounded-3xl border border-white/10 bg-slate-900/50 p-5 md:p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-white">My Profile</h2>
-          <span class="text-xs text-slate-400">Doctor</span>
-        </div>
-        <form id="doctorProfileForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input id="doctorFullName" type="text" required minlength="2" maxlength="80" pattern="^[A-Za-z][A-Za-z .'-]{1,79}$" placeholder="Full Name" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-          <input id="doctorSpecialization" type="text" maxlength="120" placeholder="Clinic / Specialization" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-          <input id="doctorHospitalName" type="text" maxlength="160" placeholder="Hospital Name" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-          <button type="submit" class="md:col-span-3 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Save Doctor Profile</button>
-        </form>
-        <p id="doctorProfileStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
-
-        <div class="mt-6 border-t border-white/10 pt-5">
-          <h3 class="text-sm font-semibold text-white mb-3">Change Password</h3>
-          <form id="doctorPasswordForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input id="doctorCurrentPassword" type="password" autocomplete="current-password" minlength="6" maxlength="72" required placeholder="Current Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-            <input id="doctorNewPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="New Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-            <input id="doctorConfirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="Confirm New Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
-            <button type="submit" class="md:col-span-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20 transition">Update Password</button>
-          </form>
-          <p id="doctorPasswordStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
-        </div>
-      </section>
 
       <div id="errorMessage" class="hidden mb-8 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
         Patient Card ID not found. Please verify the number and try again.
@@ -298,6 +287,40 @@
             <button type="submit" class="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Verify OTP</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div id="doctorProfileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4">
+      <div class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900 p-6 md:p-8">
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-white flex items-center gap-2">
+              <svg class="h-5 w-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A10.963 10.963 0 0112 15c2.63 0 5.047.92 6.879 2.454M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              Doctor Profile
+            </h3>
+            <p class="mt-1 text-sm text-slate-400">Update your details and password.</p>
+          </div>
+          <button id="closeDoctorProfileModal" type="button" class="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-slate-200 hover:border-white/40 transition">Close</button>
+        </div>
+
+        <form id="doctorProfileForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input id="doctorFullName" type="text" required minlength="2" maxlength="80" pattern="^[A-Za-z][A-Za-z .'-]{1,79}$" placeholder="Full Name" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <input id="doctorSpecialization" type="text" maxlength="120" placeholder="Clinic / Specialization" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <input id="doctorHospitalName" type="text" maxlength="160" placeholder="Hospital Name" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+          <button type="submit" class="md:col-span-3 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300 transition">Save Doctor Profile</button>
+        </form>
+        <p id="doctorProfileStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
+
+        <div class="mt-6 border-t border-white/10 pt-5">
+          <h4 class="text-sm font-semibold text-white mb-3">Change Password</h4>
+          <form id="doctorPasswordForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input id="doctorCurrentPassword" type="password" autocomplete="current-password" minlength="6" maxlength="72" required placeholder="Current Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="doctorNewPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="New Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <input id="doctorConfirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="72" required placeholder="Confirm New Password" class="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition" />
+            <button type="submit" class="md:col-span-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-200 hover:bg-emerald-500/20 transition">Update Password</button>
+          </form>
+          <p id="doctorPasswordStatus" class="hidden mt-3 rounded-lg border px-3 py-2 text-xs"></p>
+        </div>
       </div>
     </div>
 
